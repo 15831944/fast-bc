@@ -8,15 +8,23 @@ add_subdirectory( libfastbc )
 # Fast-BC compile options
 #####################################################################
 
-add_executable(fbc main.cpp)
+# Remove after debug
+set(CMAKE_BUILD_TYPE Debug)
 
-target_include_directories(fbc 
-  PUBLIC
-  fastbc )
+set(Boost_USE_STATIC_LIBS OFF) 
+set(Boost_USE_MULTITHREADED ON)  
+set(Boost_USE_STATIC_RUNTIME OFF) 
+find_package(Boost 1.68.0 COMPONENTS graph) 
 
-target_link_libraries(fbc 
-  fastbc )
+if(Boost_FOUND)
+    include_directories(${Boost_INCLUDE_DIRS}) 
 
-set_target_properties(fbc PROPERTIES 
-  CXX_STANDARD 17
-  CXX_FLAGS "-march=native -fopt-info -ffast-math -ftree-vectorizer-verbose=2" )
+    add_executable(fbc main.cpp)
+
+    target_include_directories(fbc PUBLIC fastbc)
+    
+    target_link_libraries(fbc ${Boost_LIBRARIES} fastbc)
+
+    set_target_properties(fbc PROPERTIES CXX_STANDARD 17 CXX_FLAGS "-march=native -fopt-info -ffast-math -ftree-vectorizer-verbose=2" )
+endif()
+
