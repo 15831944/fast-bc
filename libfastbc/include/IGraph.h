@@ -18,28 +18,53 @@ namespace fastbc {
     public:
 
         /**
-         * @brief Get weight of given src->dest edge
+         *	@brief Get weight of given src->dest edge
          * 
-         * @details When src->dest edge is present its weight will be returned, else zero 
-         *          will be the return value. 
-         *          In case of undirected graph the calls edge(src,dest) == edge(dest,src).
+         *	@details When src->dest edge is present its weight will be returned, else zero 
+         *			 will be the return value. 
+         *           In case of undirected graph the calls edge(src,dest) == edge(dest,src).
          * 
-         * @param src Source node for required edge
-         * @param dest Destination node for required edge
-         * @return W Weight of required edge
+         *	@param src Source node for required edge
+         *	@param dest Destination node for required edge
+         *	@return W Weight of required edge
          */
         virtual W edge(V src, V dest) const = 0;
 
         /**
-         * @brief Get forward star vertex/weight for given src vertex
+         *	@brief Get forward star vertex/weight for given src vertex
          * 
-         * @param src Vertex index 
-         * @return const std::map<V, W>& Dest/edge weight map of all outgoing edges from src vertex
+         *	@param src Vertex index 
+         *	@return const std::map<V, W>& Dest/edge weight map of all outgoing edges from src vertex
          */
         virtual const std::map<V, W>& forwardStar(V src) const = 0;
 
-        virtual V nodes() const = 0;
+		/**
+		 *	@brief Get backward star vertex/weight for given dest vertex
+		 * 
+		 *	@param dest Vertex index
+		 *	@return const std::map<V, W>& Src/edge weight map of all incoming edges to dest vertex
+		 */
+		virtual const std::map<V, W>& backwardStar(V dest) const = 0;
 
+		/**
+		 *	@brief Get full list ov vertices in this graph
+		 *
+		 *	@return const std::vector<V>& List of vertices' indices
+		 */
+		virtual const std::vector<V>& verticesList() const = 0;
+
+		/**
+		 *	@brief Get number of graph's vertices
+		 * 
+		 *	@return Graph vertices count
+		 */
+        virtual V vertices() const = 0;
+
+		/**
+		 *	@brief Get number of graph's edges
+		 * 
+		 *	@return Graph edges count
+		 */
         virtual V edges() const = 0;
     };    
 

@@ -1,4 +1,5 @@
 #include <DirectedWeightedGraph.h>
+#include <SubGraph.h>
 
 #include <fstream>
 #include <iostream>
@@ -21,10 +22,11 @@ int main(int argc, char **argv)
 	}
 
 	// Initialize graph object with loaded text file
-	fastbc::IGraph<int, float>* graph = new fastbc::DirectedWeightedGraph<int, float>(graphTextFile);
+	std::shared_ptr<fastbc::IGraph<int, float>> graph = 
+		std::make_shared<fastbc::DirectedWeightedGraph<int, float>>(graphTextFile);
 
 	// Print some information about loaded graph
-	std::cout << "Loaded graph contains " << graph->nodes() << " nodes and " 
+	std::cout << "Loaded graph contains " << graph->vertices() << " nodes and " 
 		<< graph->edges() << " edges." << std::endl;
 
 	// TODO: Graph processing

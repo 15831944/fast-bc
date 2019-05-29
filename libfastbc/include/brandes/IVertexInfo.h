@@ -39,15 +39,27 @@ namespace fastbc {
 			virtual V spCountToBorder(V borderVertex) const = 0;
 
 			/**
-			 *	@brief Check if two vertex has same topological charactericìstics with respect to border nodes
+			 *	@brief Compute topological distance between this and another vertex information
 			 *	
-			 * @param vi Vertex info to compare to this
-			 * @return bool True if vi has same topological characteristics, false else
+			 *	@details Topological distance is represented by the Euclidean distance between 
+			 *			 the vector of border distances/shortest path count of this and vi 
+			 *			 vertices information
+			 * 
+			 *	@param vi Vertex info to compare to this
+			 *	@return int Zero if topological charateristics are equal, distance else
 			 */
-			virtual bool compareTopologyClass(const IVertexInfo& vi) const = 0;
+			virtual int topologicalDistance(const IVertexInfo<V,W>& vi) const = 0;
+
+			static int topologicalDistance(const IVertexInfo<V,W>& a, const IVertexInfo& b);
 		};
 
 	}
+}
+
+template<typename V, typename W>
+int fastbc::brandes::IVertextInfo<V, W>::topologicalDistance(const IVertexInfo<V,W>& a, const IVertexInfo<V,W>& b)
+{
+	return a.topologicalDistance(b);
 }
 
 #endif // !FASTBC_BRANDES_IVERTEXINFO_H
