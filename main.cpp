@@ -8,6 +8,9 @@
 #include <iostream>
 #include <utility>
 
+#include <fastbc.h>
+#include <louvain.h>
+
 // TODO choose the right data structures 
 // https://www.boost.org/doc/libs/1_55_0/libs/graph/doc/using_adjacency_list.html
 
@@ -59,10 +62,6 @@ void parse_args(int argc, char **argv) {
 int main(int argc, char **argv)
 {
 	srand ( time(NULL) );
-	typedef adjacency_list<vecS, listS, directedS,
-		property<vertex_index_t, int>,
-		property<edge_capacity_t, double> 
-	> Graph;
 
 	parse_args(argc, argv);
 
@@ -106,20 +105,25 @@ int main(int argc, char **argv)
    		ifs.close();
     }
 
+    //**************************************************************************************
+	// PERFORM LOUVAIN
+
+	Louvain louvain(g);
+	std::vector<int> order = louvain.random_evaluation_order();
+	Partition p = louvain.compute(order);
 
     //**************************************************************************************
 	// PERFORM BRANDES
 
-	typedef property_map< Graph, vertex_index_t>::type VertexIndexMap;
 	VertexIndexMap v_index = get(vertex_index, g);
 	boost::shared_array_property_map<double, VertexIndexMap >
 		centrality_map(num_vertices(g), v_index);
 
     brandes_betweenness_centrality(g, centrality_map);
 
-    BGL_FORALL_VERTICES_T(v, g, Graph) {
+    /*BGL_FORALL_VERTICES_T(v, g, Graph) {
     	std::cout << v_index[v] << " " << get(centrality_map, v) << std::endl;
-	}
+	}*/
 
     return 0;
 }
