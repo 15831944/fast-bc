@@ -1,6 +1,3 @@
 build
 .vscode
-
-testenv/shared/*
-!testenv/shared/kmdrun.sh
-!testenv/shared/*/
+.vs
