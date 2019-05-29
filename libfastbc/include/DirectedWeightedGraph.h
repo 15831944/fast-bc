@@ -47,14 +47,16 @@ fastbc::DirectedWeightedGraph<V, W>::DirectedWeightedGraph(std::istream& inputTe
         V src, dest;
 		W weight;
         inputTextGraph >> src >> dest >> weight;
+	if(inputTextGraph) {
+	    if(_srcDestWeight.size() <= src)
+            {
+                _srcDestWeight.resize(src + 1);
+            }
 
-        if(_srcDestWeight.size() <= src)
-        {
-            _srcDestWeight.resize(src + 1);
-        }
-
-        _srcDestWeight[src][dest] = weight;
-        _edges++;
+            _srcDestWeight[src][dest] = weight;
+            _edges++;
+            printf("Edge %d: %d %d\n", _edges, src, dest);
+	}
     }
 }
 
