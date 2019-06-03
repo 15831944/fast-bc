@@ -2,7 +2,7 @@
 #define FASTBC_LOUVAIN_ILOUVAINEVALUATOR_H
 
 #include <IGraph.h>
-#include "ICommunity.h"
+#include <louvain/ICommunity.h>
 #include <louvain/Partition.h>
 
 namespace fastbc {
