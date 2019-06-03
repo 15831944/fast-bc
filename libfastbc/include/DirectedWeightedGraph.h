@@ -25,6 +25,8 @@ namespace fastbc {
 		 */
         DirectedWeightedGraph(std::istream& inputTextGraph);
 
+        DirectedWeightedGraph();
+
         W edge(V src, V dest) const override;
 
         const std::map<V, W>& forwardStar(V src) const override;
@@ -36,15 +38,32 @@ namespace fastbc {
         V vertices() const override;
 
         V edges() const override;
+
+        void addEdge(V from, V to, W weight) override;
+
+        void initVertices() override;
+
+        W totalWeight() const override;
+
+		W inWeightedDegree(V v) const override;
+
+        W outWeightedDegree(V v) const override;
         
     private:
         V _edges;
+        W _totalWeight;
 		std::vector<V> _vertices;
+		std::vector<W> _inWeightedDegrees;
+		std::vector<W> _outWeightedDegrees;
         std::vector<std::map<V, W>> _srcDestWeight;
 		std::vector<std::map<V, W>> _destSrcWeight;
     };   
 
 }
+
+template<typename V, typename W>
+fastbc::DirectedWeightedGraph<V, W>::DirectedWeightedGraph()
+	: _edges(0) {}
 
 template<typename V, typename W>
 fastbc::DirectedWeightedGraph<V, W>::DirectedWeightedGraph(std::istream& inputTextGraph)
@@ -68,30 +87,13 @@ fastbc::DirectedWeightedGraph<V, W>::DirectedWeightedGraph(std::istream& inputTe
 			break;
 		}
 
-        if(_srcDestWeight.size() <= src)
-        {
-            _srcDestWeight.resize(src + 1);
-        }
-
-		if (_destSrcWeight.size() <= dest)
-		{
-			_destSrcWeight.resize(dest + 1);
-		}
-
-        _srcDestWeight[src][dest] = weight;
-		_destSrcWeight[dest][src] = weight;
-        _edges++;
+        addEdge(src, dest, weight);
     }
 
 	// Ensure both forward and backward star containers share same size
 	_destSrcWeight.resize(_srcDestWeight.size());
 
-	// Initialize vertices list
-	_vertices.resize(_srcDestWeight.size());
-	for (V v = 0; v < _vertices.size(); v++)
-	{
-		_vertices[v] = v;
-	}
+	initVertices();
 }
 
 template<typename V, typename W>
@@ -135,6 +137,72 @@ template<typename V, typename W>
 V fastbc::DirectedWeightedGraph<V, W>::edges() const
 {
     return _edges;
+}
+
+template<typename V, typename W>
+void fastbc::DirectedWeightedGraph<V, W>::addEdge(V from, V to, W weight) 
+{
+	if(_srcDestWeight.size() <= from)
+    {
+        _srcDestWeight.resize(from + 1);
+    }
+
+	if (_destSrcWeight.size() <= to)
+	{
+		_destSrcWeight.resize(to + 1);
+	}
+
+	int s = (to > from) ? to : from;
+	if (_inWeightedDegrees.size() <= s)
+		_inWeightedDegrees.resize(s + 1, 0);
+	if (_outWeightedDegrees.size() <= s)
+		_outWeightedDegrees.resize(s + 1, 0);
+
+	if(_srcDestWeight[from].count(to) > 0) {
+		_srcDestWeight[from][to] += weight;
+	} else {
+		_srcDestWeight[from][to] = weight;
+    	_edges++;
+	}
+
+	if(_destSrcWeight[to].count(from) > 0) {
+		_destSrcWeight[to][from] += weight;
+	} else {
+		_destSrcWeight[to][from] = weight;
+	}
+
+    _totalWeight += weight;
+	_inWeightedDegrees[to] += weight;
+	_outWeightedDegrees[from] += weight;
+}
+
+template<typename V, typename W>
+void fastbc::DirectedWeightedGraph<V, W>::initVertices() 
+{
+	// Initialize vertices list
+	_vertices.resize(_srcDestWeight.size());
+	for (V v = 0; v < _vertices.size(); v++)
+	{
+		_vertices[v] = v;
+	}
+}
+
+template<typename V, typename W>
+W fastbc::DirectedWeightedGraph<V, W>::totalWeight() const
+{
+	return _totalWeight;
+}
+
+template<typename V, typename W>
+W fastbc::DirectedWeightedGraph<V, W>::inWeightedDegree(V v) const
+{
+	return _inWeightedDegrees[v];
+}
+
+template<typename V, typename W>
+W fastbc::DirectedWeightedGraph<V, W>::outWeightedDegree(V v) const
+{
+	return _outWeightedDegrees[v];
 }
 
 #endif

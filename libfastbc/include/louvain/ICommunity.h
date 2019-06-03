@@ -19,7 +19,7 @@ namespace fastbc {
 			 *
 			 *	@return std::vector<V> Full list of vertex in this community
 			 */
-			virtual std::vector<V>& all() const = 0;
+			virtual std::vector<V> all() const = 0;
 
 			/**
 			 *	@brief Check if given vertex is contained in this community
@@ -49,6 +49,8 @@ namespace fastbc {
 			 *	@return std::shared_ptr<const IGraph> Complete graph where this community is located
 			 */
 			virtual std::shared_ptr<const IGraph<V, W>> referenceGraph() const = 0;
+
+			virtual int size() const = 0;
 		};
 
 	}
