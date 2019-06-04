@@ -8,15 +8,21 @@ namespace fastbc {
 		template <typename V, typename W>
 		class Partition {
 		public:
+			LouvainGraph<V,W> g; // network to compute communities for
+			int size; // nummber of nodes in the network and size of all std::vectors
 
 			std::vector<double> neigh_weight;
 			std::vector<unsigned int> neigh_pos;
 			unsigned int neigh_last;
-
-			LouvainGraph<V,W> g; // network to compute communities for
-			int size; // nummber of nodes in the network and size of all std::vectors
 			std::vector<int> n2c; // community to which each node belongs
-			std::vector<double> in,tot; // used to compute the modularity participation of each community
+
+            //used to compute the modularity of the graph and the gains for each single node
+			std::vector<double> woutc,      // sum of weights going out from node i (index) to nodes in his community
+                                winc,       // sum of weights going in to node i (index) from nodes in his community
+                                wout,       // weighted out degree of node i
+                                win,        // weighted in degree of node i
+                                woutctot,   // sum of all weights of edges exiting from nodes in community i (index)
+                                winctot;    // sum of all weights of edges entering into nodes in community i (index)
 
 			// number of pass for one level computation
 			// if -1, compute as many pass as needed to increase modularity
@@ -36,13 +42,18 @@ namespace fastbc {
 			    neigh_last=0;
 
 			    n2c.resize(size);
-			    in.resize(size);
-			    tot.resize(size);
+                woutc.resize(size);
+                winc.resize(size);
+                wout.resize(size);
+			    win.resize(size);
+			    woutctot.resize(size);
+                winctot.resize(size);
 
 			    for (int i=0 ; i<size ; i++) {
 			        n2c[i] = i;
-			        in[i]  = g.nb_selfloops(i);
-			        tot[i] = g.weighted_degree(i);
+			        woutc[i] = winc[i] = g.weighted_selfloops(i);
+                    wout[i] = woutctot[i] = g.weighted_out_degree(i);
+                    win[i] = winctot[i] = g.weighted_in_degree(i);
 			    }
 
 			    nb_pass = -1;
@@ -50,21 +61,13 @@ namespace fastbc {
 			}
 
 			// remove the node from its current community with which it has dnodecomm links
-			inline void remove(int node, int comm, double dnodecomm);
+			inline void remove(int node);
 
 			// insert the node in comm with which it shares dnodecomm links
-			inline void insert(int node, int comm, double dnodecomm);
+			inline void insert(int node, int comm);
 
 			// compute the gain of modularity if node where inserted in comm
-			// given that node has dnodecomm links to comm.  The formula is:
-			// [(In(comm)+2d(node,comm))/2m - ((tot(comm)+deg(node))/2m)^2]-
-			// [In(comm)/2m - (tot(comm)/2m)^2 - (deg(node)/2m)^2]
-			// where In(comm)    = number of half-links strictly inside comm
-			//       Tot(comm)   = number of half-links inside or outside comm (sum(degrees))
-			//       d(node,com) = number of links from node to comm
-			//       deg(node)   = node degree
-			//       m           = number of links
-			inline double modularity_gain(int node, int comm, double dnodecomm, double w_degree);
+			inline double modularity_gain(int node, int comm, double wic);
 
 			// compute the set of neighboring communities of node
 			// for each community, gives the number of links from node to comm
@@ -80,53 +83,67 @@ namespace fastbc {
 			// return true if some nodes have been moved
 			bool one_level();
 			bool one_level(std::vector<int> evaluation_order);
-		};
 
-	}
+            void write_communities();
+        };
+    }
 }
 
 template<typename V, typename W>
 inline void
-fastbc::louvain::Partition<V, W>::remove(int node, int comm, double dnodecomm) {
-  tot[comm] -= g.weighted_degree(node);
-  in[comm]  -= 2*dnodecomm + g.nb_selfloops(node);
+fastbc::louvain::Partition<V, W>::remove(int node) {
+  woutc[node] = 0;
+  winc[node] = 0;
+  woutctot[n2c[node]] -= g.weighted_out_degree(node);
+  winctot[n2c[node]] -= g.weighted_in_degree(node);
   n2c[node]  = -1;
 }
 
 template <typename V, typename W>
 inline void
-fastbc::louvain::Partition<V, W>::insert(int node, int comm, double dnodecomm) {
-  tot[comm] += g.weighted_degree(node);
-  in[comm]  += 2*dnodecomm + g.nb_selfloops(node);
+fastbc::louvain::Partition<V, W>::insert(int node, int comm) {
   n2c[node]=comm;
+  std::pair<typename std::vector<V>::iterator, typename std::vector<W>::iterator > pin = g.out_neighbors(node);
+  for (unsigned int i=0 ; i<g.nb_out_neighbors(node) ; i++) {
+      if(n2c[(V)*(pin.first+i)] == comm)
+        woutc[node] += (W)*(pin.second+i);
+  }
+  std::pair<typename std::vector<V>::iterator, typename std::vector<W>::iterator > pout = g.in_neighbors(node);
+  for (unsigned int i=0 ; i<g.nb_in_neighbors(node) ; i++) {
+      if(n2c[(V)*(pout.first+i)] == comm)
+        winc[node] += (W)*(pout.second+i);
+  }
+  woutctot[comm] += g.weighted_out_degree(node);
+  winctot[comm] += g.weighted_out_degree(node);
 }
 
 template <typename V, typename W>
 inline double
-fastbc::louvain::Partition<V, W>::modularity_gain(int node, int comm, double dnodecomm, double w_degree) {
-  double totc = (double)tot[comm];
-  double degc = (double)w_degree;
-  double m2   = (double)g.total_weight;
-  double dnc  = (double)dnodecomm;
+fastbc::louvain::Partition<V, W>::modularity_gain(int node, int comm, double wic) {
+  double woutn  = wout[node];
+  double winn   = win[node];
+  double winc   = winctot[comm];
+  double woutc  = woutctot[comm];
+  double m      = (double) g.total_weight;
 
-  /*cerr << "tot      : ";
-  for(int i=0; i<tot.size(); i++) cerr << tot[i] << " ";
-  cerr << endl;
-  cerr << "DiC      : " << dnc << endl;
-  cerr << "Di       : " << degc << endl;
-  cerr << "EtotC    : " << totc << endl;
-  cerr << "2m       : " << m2 << endl;*/
+  std::cout << "wic   : " << wic << std::endl;
+  std::cout << "woutn : " << woutn << std::endl;
+  std::cout << "winn  : " << winn << std::endl;
+  std::cout << "winc  : " << winc << std::endl;
+  std::cout << "woutc : " << woutc << std::endl;
+  std::cout << "m     : " << m << std::endl;
+  std::cout << "gain  : " << (wic/m - (woutn/m)*(winc/m) - (winn/m)*(woutc/m)) << std::endl;
   
-  return (dnc - totc*degc/m2);
+  return (wic/m - (woutn/m)*(winc/m) - (winn/m)*(woutc/m));
 }
 
 template<typename V, typename W>
 double fastbc::louvain::Partition<V, W>::modularity() {
     double q    = 0.;
-    double m2 = (double)g.total_weight;
+    double m = (double)g.total_weight;
     for (int i=0 ; i<size ; i++) {
-        if (tot[i]>0){
-            q += (double)in[i]/m2 - ((double)tot[i]/m2)*((double)tot[i]/m2);
+        if (wout[i]>0){
+            q += (double)woutc[i]/m - ((double)wout[i]/m)*((double)winctot[n2c[i]]/m);
         }
     }
     return q;
@@ -138,28 +155,45 @@ void fastbc::louvain::Partition<V, W>::neigh_comm(unsigned int node) {
         neigh_weight[neigh_pos[i]]=-1;
     neigh_last=0;
 
-    std::pair<typename std::vector<V>::iterator, typename std::vector<W>::iterator> p = g.neighbors(node);
+    std::pair<typename std::vector<V>::iterator, typename std::vector<W>::iterator> pin     = g.in_neighbors(node);
+    std::pair<typename std::vector<V>::iterator, typename std::vector<W>::iterator> pout    = g.out_neighbors(node);
 
-    unsigned int deg = g.nb_neighbors(node);
+    unsigned int indeg  = g.nb_in_neighbors(node);
+    unsigned int outdeg = g.nb_out_neighbors(node);
 
     neigh_pos[0]=n2c[node];
     neigh_weight[neigh_pos[0]]=0;
     neigh_last=1;
 
-    for (unsigned int i=0 ; i<deg ; i++) {
-        unsigned int neigh                = *(p.first+i);
+    for (unsigned int i=0 ; i<indeg ; i++) {
+        unsigned int neigh          = *(pin.first+i);
         unsigned int neigh_comm     = n2c[neigh];
-        double neigh_w = (g.weights.size()==0)?1.:*(p.second+i);
+        double neigh_w = (g.inweights.size()==0)?1.:*(pin.second+i);
         
         if (neigh!=node) {
             if (neigh_weight[neigh_comm]==-1) {
-	neigh_weight[neigh_comm]=0.;
-	neigh_pos[neigh_last++]=neigh_comm;
+                	neigh_weight[neigh_comm]=0.;
+                	neigh_pos[neigh_last++]=neigh_comm;
+            }
+            neigh_weight[neigh_comm]+=neigh_w;
+        }
+    }
+
+    for (unsigned int i=0 ; i<outdeg ; i++) {
+        unsigned int neigh          = *(pout.first+i);
+        if(neigh != node) {
+            unsigned int neigh_comm     = n2c[neigh];
+            double neigh_w = (g.outweights.size()==0)?1.:*(pout.second+i);
+            
+            if (neigh_weight[neigh_comm]==-1) {
+                    neigh_weight[neigh_comm]=0.;
+                    neigh_pos[neigh_last++]=neigh_comm;
             }
             neigh_weight[neigh_comm]+=neigh_w;
         }
     }
 }
+
 
 template<typename V, typename W>
 fastbc::louvain::LouvainGraph<V, W> fastbc::louvain::Partition<V, W>::partition2graph() {
@@ -185,38 +219,61 @@ fastbc::louvain::LouvainGraph<V, W> fastbc::louvain::Partition<V, W>::partition2
     g2.nb_nodes = comm_nodes.size();
     g2.total_weight = 0;
     g2.nb_links = 0;
-    g2.degrees.resize(comm_nodes.size());
+    g2.indegrees.resize(comm_nodes.size());
+    g2.outdegrees.resize(comm_nodes.size());
 
     int comm_deg = comm_nodes.size();
     for (int comm=0 ; comm<comm_deg ; comm++) {
-        std::map<int,double> m;
+        std::map<int,double> inm;
+        std::map<int, double> outm;
         std::map<int,double>::iterator it;
 
         int comm_size = comm_nodes[comm].size();
         for (int node=0 ; node<comm_size ; node++) {
-            std::pair<typename std::vector<V>::iterator, typename std::vector<W>::iterator> p;
-            p = g.neighbors(comm_nodes[comm][node]);
-            int deg = g.nb_neighbors(comm_nodes[comm][node]);
-            for (int i=0 ; i<deg ; i++) {
-            	int neigh           = *(p.first+i);
+            std::pair<typename std::vector<V>::iterator, typename std::vector<W>::iterator> pin;
+            pin = g.in_neighbors(comm_nodes[comm][node]);
+            int indeg = g.nb_in_neighbors(comm_nodes[comm][node]);
+            for (int i=0 ; i<indeg ; i++) {
+            	int neigh           = *(pin.first+i);
             	int neigh_comm      = renumber[n2c[neigh]];
-            	double neigh_weight = (g.weights.size()==0)?1.:*(p.second+i);
+            	double neigh_weight = (g.inweights.size()==0)?1.:*(pin.second+i);
 
-            	it = m.find(neigh_comm);
-            	if (it==m.end())
-            	    m.insert(std::make_pair(neigh_comm, neigh_weight));
+            	it = inm.find(neigh_comm);
+            	if (it==inm.end())
+            	    inm.insert(std::make_pair(neigh_comm, neigh_weight));
             	else
             	    it->second+=neigh_weight;
             }
+
+            std::pair<typename std::vector<V>::iterator, typename std::vector<W>::iterator> pout;
+            pout = g.out_neighbors(comm_nodes[comm][node]);
+            int outdeg = g.nb_out_neighbors(comm_nodes[comm][node]);
+            for (int i=0 ; i<outdeg ; i++) {
+                int neigh           = *(pout.first+i);
+                int neigh_comm      = renumber[n2c[neigh]];
+                double neigh_weight = (g.outweights.size()==0)?1.:*(pout.second+i);
+
+                it = outm.find(neigh_comm);
+                if (it==outm.end())
+                    outm.insert(std::make_pair(neigh_comm, neigh_weight));
+                else
+                    it->second+=neigh_weight;
+            }
         }
-        g2.degrees[comm]=(comm==0)? m.size() : g2.degrees[comm-1]+m.size();
-        g2.nb_links+=m.size();
+        g2.indegrees[comm]=(comm==0)? inm.size() : g2.indegrees[comm-1]+inm.size();
+        g2.outdegrees[comm]=(comm==0)? outm.size() : g2.outdegrees[comm-1]+outm.size();
+        g2.nb_links+=inm.size();
 
         
-        for (it = m.begin() ; it!=m.end() ; it++) {
+        for (it = inm.begin() ; it!=inm.end() ; it++) {
             g2.total_weight    += it->second;
-            g2.links.push_back(it->first);
-            g2.weights.push_back(it->second);
+            g2.inlinks.push_back(it->first);
+            g2.inweights.push_back(it->second);
+        }
+
+        for (it = outm.begin() ; it!=outm.end() ; it++) {
+            g2.outlinks.push_back(it->first);
+            g2.outweights.push_back(it->second);
         }
     }
 
@@ -265,44 +322,41 @@ bool fastbc::louvain::Partition<V, W>::one_level(std::vector<int> random_order) 
 
             //cerr << "Node " << node << ": " << endl << endl;
             int node_comm         = n2c[node];
-            double w_degree = g.weighted_degree(node);
 
             // computation of all neighboring communities of current node
             neigh_comm(node);
             // remove node from its current community
-            remove(node, node_comm, neigh_weight[node_comm]);
+            remove(node);
+
+            std::cout << std::endl << "EVALUATING NODE " << node << std::endl;
 
             // compute the nearest community for node
             // default choice for future insertion is the former community
-            int best_comm                = node_comm;
-            double best_nblinks    = 0.;
+            int best_comm        = node_comm;
+            double best_nblinks  = 0.;
             double best_increase = 0.;
             for (unsigned int i=0 ; i<neigh_last ; i++) {
                 //cerr << "Evaluating move to " << neigh_pos[i] << " community" << endl;
-                double increase = modularity_gain(node, neigh_pos[i], neigh_weight[neigh_pos[i]], w_degree);
+                std::cout << "Testing move to " << neigh_pos[i] << " : " << std::endl;
+                double increase = modularity_gain(node, neigh_pos[i], neigh_weight[neigh_pos[i]]);
                 //cerr << "Gain: " << increase << endl;
                 if (increase>best_increase) {
-                    best_comm         = neigh_pos[i];
-                    best_nblinks    = neigh_weight[neigh_pos[i]];
+                    best_comm     = neigh_pos[i];
+                    best_nblinks  = neigh_weight[neigh_pos[i]];
                     best_increase = increase;
                 }
             }
             //cerr << "Best gain: " << best_increase << endl << endl;
             //cerr << "Inserting into " << best_comm << " community." << endl;
             // insert node in the nearest community
-            insert(node, best_comm, best_nblinks);
+
+            std::cout << "MOVING NODE " << node << " TO " << best_comm << std::endl << std::endl;
+            insert(node, best_comm);
          
             //cerr << "New modularity: " << modularity() << endl << endl;
 
             if (best_comm!=node_comm)
                 nb_moves++;
-        }
-
-        double total_tot=0;
-        double total_in=0;
-        for (unsigned int i=0 ; i<tot.size() ;i++) {
-            total_tot+=tot[i];
-            total_in+=in[i];
         }
 
         new_mod = modularity();
@@ -313,7 +367,30 @@ bool fastbc::louvain::Partition<V, W>::one_level(std::vector<int> random_order) 
         
     } while (nb_moves>0 && new_mod-cur_mod>min_modularity);
 
+    std::cout << "Communities: " << std::endl;
+    write_communities();
+
     return improvement;
+}
+
+template<typename V, typename W>
+void fastbc::louvain::Partition<V, W>::write_communities() {
+  std::map<int, std::vector<int> > comms;
+  for(int i=0; i<size; i++) {
+    if(comms.count(n2c[i]) <= 0)
+      comms[n2c[i]] = std::vector<int>();
+    comms[n2c[i]].push_back(i);
+  }
+
+  std::map<int, std::vector<int> >::iterator it;
+
+  for ( it = comms.begin(); it != comms.end(); it++ )
+  {
+      std::cout << it->first << " : " << std::endl;
+      for(int i=0; i< it->second.size(); i++)
+        std::cout << it->second[i] << " ";
+      std::cout << std::endl;
+  }
 }
 
 #endif
