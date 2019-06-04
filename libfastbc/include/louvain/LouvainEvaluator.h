@@ -4,7 +4,9 @@
 #include <louvain/ILouvainEvaluator.h>
 #include <louvain/LouvainGraph.h>
 #include <louvain/Partition.h>
+#include <louvain/Community.h>
 #include <ctime>
+#include <omp.h>
 
 namespace fastbc {
 	namespace louvain {
@@ -18,6 +20,7 @@ namespace fastbc {
 			typedef std::shared_ptr<IGraph<V,W>> Graph;
 			bool verbose = true;	
 			double precision = 0.01;	
+			int parallelism = 4;
 
 			void
 			display_time(const char *str) {
@@ -26,13 +29,52 @@ namespace fastbc {
 				std::cout << str << ": " << ctime (&rawtime);
 			}
 
+			void
+			renumber_communities(std::vector<V>& comms, const std::vector<V>& n2c) {
+				    std::vector<int> renumber(n2c.size(), -1);
+				    for (int node=0 ; node<n2c.size() ; node++) {
+				        renumber[n2c[node]]++;
+				    }
+
+				    int final=0;
+				    for (int i=0 ; i<n2c.size() ; i++)
+				        if (renumber[i]!=-1)
+				            renumber[i]=final++;
+
+				    for(int i=0; i<comms.size(); i++) {
+				    	int old_community = comms[i];
+				    	int new_community = n2c[old_community];
+				    	int new_renumbered_community = renumber[new_community];
+
+				    	comms[i] = new_renumbered_community;
+				    }
+			}
+
+			Result
+			build_result(const std::vector<int>& n2c, const Graph g) {
+				Result r;
+
+				int max = 0;
+				for(int i=0; i<n2c.size(); i++)
+					if(n2c[i] > max)
+						max = n2c[i];
+
+				r.resize(max + 1);
+				for(int i=0; i<r.size(); i++)
+					r[i] = std::make_shared<Community<V, W>>(g);
+
+				for(int i=0; i<n2c.size(); i++)
+					r[n2c[i]]->add(i);
+
+				return r;
+			}
+
 
 		public:
 			LouvainEvaluator() {}		
 				
 			Result evaluateGraph(Graph graph) override
 			{
-				Result r;
 			    time_t time_begin, time_end;
 			    time(&time_begin);
 			    if (verbose)
@@ -58,6 +100,7 @@ namespace fastbc {
 			        improvement = p.one_level();
 			        new_mod = p.modularity();
 			        g = p.partition2graph();
+			        renumber_communities(n2c, p.n2c);
 			        p = Partition(g, precision);
 
 			        if (verbose)
@@ -76,7 +119,8 @@ namespace fastbc {
 			    }
 			    std::cout << new_mod << std::endl;
 			    std::cout << std::endl;
-				return r;
+
+				return build_result(n2c, graph);
 			}
 		};
 	}

@@ -126,13 +126,13 @@ fastbc::louvain::Partition<V, W>::modularity_gain(int node, int comm, double wic
   double woutc  = woutctot[comm];
   double m      = (double) g.total_weight;
 
-  std::cout << "wic   : " << wic << std::endl;
+  /*std::cout << "wic   : " << wic << std::endl;
   std::cout << "woutn : " << woutn << std::endl;
   std::cout << "winn  : " << winn << std::endl;
   std::cout << "winc  : " << winc << std::endl;
   std::cout << "woutc : " << woutc << std::endl;
   std::cout << "m     : " << m << std::endl;
-  std::cout << "gain  : " << (wic/m - (woutn/m)*(winc/m) - (winn/m)*(woutc/m)) << std::endl;
+  std::cout << "gain  : " << (wic/m - (woutn/m)*(winc/m) - (winn/m)*(woutc/m)) << std::endl;*/
   
   return (wic/m - (woutn/m)*(winc/m) - (winn/m)*(woutc/m));
 }
@@ -328,8 +328,6 @@ bool fastbc::louvain::Partition<V, W>::one_level(std::vector<int> random_order) 
             // remove node from its current community
             remove(node);
 
-            std::cout << std::endl << "EVALUATING NODE " << node << std::endl;
-
             // compute the nearest community for node
             // default choice for future insertion is the former community
             int best_comm        = node_comm;
@@ -337,7 +335,6 @@ bool fastbc::louvain::Partition<V, W>::one_level(std::vector<int> random_order) 
             double best_increase = 0.;
             for (unsigned int i=0 ; i<neigh_last ; i++) {
                 //cerr << "Evaluating move to " << neigh_pos[i] << " community" << endl;
-                std::cout << "Testing move to " << neigh_pos[i] << " : " << std::endl;
                 double increase = modularity_gain(node, neigh_pos[i], neigh_weight[neigh_pos[i]]);
                 //cerr << "Gain: " << increase << endl;
                 if (increase>best_increase) {
@@ -350,7 +347,6 @@ bool fastbc::louvain::Partition<V, W>::one_level(std::vector<int> random_order) 
             //cerr << "Inserting into " << best_comm << " community." << endl;
             // insert node in the nearest community
 
-            std::cout << "MOVING NODE " << node << " TO " << best_comm << std::endl << std::endl;
             insert(node, best_comm);
          
             //cerr << "New modularity: " << modularity() << endl << endl;
@@ -367,9 +363,9 @@ bool fastbc::louvain::Partition<V, W>::one_level(std::vector<int> random_order) 
         
     } while (nb_moves>0 && new_mod-cur_mod>min_modularity);
 
-    std::cout << "Communities: " << std::endl;
-    write_communities();
-
+    /*std::cout << "Communities: " << std::endl;
+    write_communities();*/
+    
     return improvement;
 }
 
