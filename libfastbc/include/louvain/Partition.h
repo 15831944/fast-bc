@@ -2,6 +2,7 @@
 #define FASTBC_LOUVAIN_PARTITION_H
 
 #include <louvain/LouvainGraph.h>
+#include <algorithm>
 
 namespace fastbc {
 	namespace louvain {
@@ -283,14 +284,9 @@ fastbc::louvain::LouvainGraph<V, W> fastbc::louvain::Partition<V, W>::partition2
 template<typename V, typename W>
 bool fastbc::louvain::Partition<V, W>::one_level() {
     std::vector<int> random_order(size);
-        for (int i=0 ; i<size ; i++)
-                random_order[i]=i;
-        /*for (int i=0 ; i<size-1 ; i++) {
-                int rand_pos = rand()%(size-i)+i;
-                int tmp            = random_order[i];
-                random_order[i] = random_order[rand_pos];
-                random_order[rand_pos] = tmp;
-        }*/
+    for (int i=0 ; i<size ; i++)
+        random_order[i]=i;
+    std::random_shuffle(random_order.begin(), random_order.end());    
     return one_level(random_order);
 }
 

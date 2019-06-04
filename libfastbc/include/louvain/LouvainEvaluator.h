@@ -81,10 +81,15 @@ namespace fastbc {
 			        display_time("Begin");
 
 			    LouvainGraph<V, W> g(graph);
-			    Partition<V, W> p(g, precision);
+			    std::vector<Partition<V, W> > p(parallelism, Partition<V, W>(g, precision));
+			    std::vector<V> n2c(g.nb_nodes);
+			    for(int i=0; i<g.nb_nodes; i++) n2c[i] = i;
+			    std::vector<bool> improvements(parallelism, true);
+			    std::vector<double> modularities(parallelism);
+			    int best_i = 0;
 
-			    bool improvement=true;
-			    double mod=p.modularity(), new_mod;
+			    bool improvement;
+			    double mod=p[best_i].modularity(), new_mod;
 			    int level=0;
 
 			    do {
@@ -92,16 +97,28 @@ namespace fastbc {
 			            std::cout << "level " << level << ":\n";
 			            display_time("    start computation");
 			            std::cout << "    network size: " 
-				     << p.g.nb_nodes << " nodes, " 
-				     << p.g.nb_links << " links, "
-				     << p.g.total_weight << " weight." << std::endl;
+				     << g.nb_nodes << " nodes, " 
+				     << g.nb_links << " links, "
+				     << g.total_weight << " weight." << std::endl;
 			        }
 
-			        improvement = p.one_level();
-			        new_mod = p.modularity();
-			        g = p.partition2graph();
-			        renumber_communities(n2c, p.n2c);
-			        p = Partition(g, precision);
+			        #pragma omp parallel for num_threads(parallelism)
+			        for(int i=0; i<parallelism; i++) {
+			        	improvements[i] = p[i].one_level();
+			        	modularities[i] = p[i].modularity();
+			        }
+
+			        int best_i = 0;
+			        for(int i=1; i<parallelism; i++)
+			        	if(modularities[i] > modularities[best_i])
+			        		best_i = i;
+
+			        improvement = improvements[best_i];
+			        new_mod = p[best_i].modularity();
+			        g = p[best_i].partition2graph();
+			        renumber_communities(n2c, p[best_i].n2c);
+			        for(int i=0; i<parallelism; i++)
+			        	p[i] = Partition<V, W> (g, precision);
 
 			        if (verbose)
 			            std::cout << "  modularity increased from " << mod << " to " << new_mod << std::endl;
