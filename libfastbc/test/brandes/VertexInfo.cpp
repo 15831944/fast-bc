@@ -8,8 +8,6 @@ TEST_CASE("Vertex info construtor", "[brandes]")
 {
 	VertexInfo<int, float> vi(4);
 
-	REQUIRE(vi.getClassCardinality() == 0);
-
 	REQUIRE_NOTHROW(vi.setBorderSPLength(3, 5.7f));
 
 	REQUIRE_THROWS(vi.setBorderSPLength(4, 5.7f));
@@ -67,13 +65,6 @@ TEST_CASE("Getter and setters", "[brandes]")
 		vi.setBorderSPLength(3, 4.7f);
 
 		REQUIRE(vi.getMinBorderSPLength() == 1.1f);
-	}
-
-	SECTION("Class cardinality set/get")
-	{
-		vi.setClassCardinality(5);
-
-		REQUIRE(vi.getClassCardinality() == 5);
 	}
 }
 

@@ -32,10 +32,6 @@ namespace fastbc {
 
 			void normalize();
 
-			V getClassCardinality() const;
-
-			void setClassCardinality(V vertices);
-
 			template<typename N, typename E>
 			W squaredDistance(const VertexInfo<N, E>& other) const;
 
@@ -101,7 +97,6 @@ namespace fastbc {
 			W compare(const VertexInfo<N, E>& other) const;
 
 		private:
-			V _classCardinality;
 			int _borderCount;
 			std::vector<W> _borderSPLength;
 			std::vector<V> _borderSPCount;
@@ -115,8 +110,7 @@ namespace fastbc {
 
 template<typename V, typename W>
 fastbc::brandes::VertexInfo<V, W>::VertexInfo(int borderCount)
-	: _classCardinality(0),
-	_borderCount(borderCount),
+	: _borderCount(borderCount),
 	_borderSPLength(_borderCount),
 	_borderSPCount(_borderCount)
 {
@@ -125,8 +119,7 @@ fastbc::brandes::VertexInfo<V, W>::VertexInfo(int borderCount)
 template<typename V, typename W>
 template<typename N, typename E>
 fastbc::brandes::VertexInfo<V, W>::VertexInfo(const VertexInfo<N, E>& copy)
-	: _classCardinality((V)copy._classCardinality),
-	_borderCount(copy._borderCount),
+	: _borderCount(copy._borderCount),
 	_borderSPLength(_borderCount),
 	_borderSPCount(_borderCount)
 {
@@ -141,8 +134,6 @@ template<typename V, typename W>
 template<typename N, typename E>
 fastbc::brandes::VertexInfo<V, W>& fastbc::brandes::VertexInfo<V, W>::operator=(const VertexInfo<N, E>& other)
 {
-	_classCardinality = (V)other._classCardinality;
-	
 	if (_borderCount != other._borderCount)
 	{
 		_borderCount = other._borderCount;
@@ -212,18 +203,6 @@ void fastbc::brandes::VertexInfo<V, W>::normalize()
 	{
 		_borderSPLength[i] -= min;
 	}
-}
-
-template<typename V, typename W>
-V fastbc::brandes::VertexInfo<V, W>::getClassCardinality() const
-{
-	return _classCardinality;
-}
-
-template<typename V, typename W>
-void fastbc::brandes::VertexInfo<V, W>::setClassCardinality(V vertices)
-{
-	_classCardinality = vertices;
 }
 
 template<typename V, typename W>

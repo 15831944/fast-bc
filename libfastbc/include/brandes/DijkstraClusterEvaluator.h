@@ -7,8 +7,8 @@
 #include <memory>
 #include <set>
 #include <stack>
-#include <tuple>
 #include <vector>
+#include <utility>
 
 namespace fastbc {
 	namespace brandes {
@@ -18,7 +18,6 @@ namespace fastbc {
 		{
 		public:
 			DijkstraClusterEvaluator();
-			~DijkstraClusterEvaluator();
 
 			void evaluateCluster(
 				std::valarray<W>& clusterBC,
@@ -41,7 +40,7 @@ namespace fastbc {
 				std::map<N, vertex_backtrack_info_t<N, E>> spBacktrack;
 			};
 
-			backtrack_info_t<V, W> dijkstra_SSSP(
+			backtrack_info_t<V, W> _dijkstra_SSSP(
 				std::vector<std::shared_ptr<VertexInfo<V, W>>>& globalVI,
 				V src,
 				std::shared_ptr<const ISubGraph<V, W>> graph);
@@ -53,11 +52,6 @@ namespace fastbc {
 
 template<typename V, typename W>
 fastbc::brandes::DijkstraClusterEvaluator<V, W>::DijkstraClusterEvaluator()
-{
-}
-
-template<typename V, typename W>
-fastbc::brandes::DijkstraClusterEvaluator<V, W>::~DijkstraClusterEvaluator()
 {
 }
 
@@ -78,12 +72,12 @@ void fastbc::brandes::DijkstraClusterEvaluator<V, W>::evaluateCluster(
 		for (auto& vw : delta) { vw.second = 0; }
 
 		// Compute shortest path storing border information 
-		backtrack_info_t<V, W> bi = dijkstra_SSSP(globalVI, src, cluster);
+		backtrack_info_t<V, W> bi = _dijkstra_SSSP(globalVI, src, cluster);
 		auto& visitStack = bi.visitStack;
 		auto& backtrackInfo = bi.spBacktrack;
 
 		// Backward visit of each vertex from dijkstra iteration 
-		while (!bi.visitStack.empty())
+		while (!visitStack.empty())
 		{
 			V w = visitStack.top();
 			visitStack.pop();
@@ -106,7 +100,7 @@ void fastbc::brandes::DijkstraClusterEvaluator<V, W>::evaluateCluster(
 
 template<typename V, typename W>
 fastbc::brandes::DijkstraClusterEvaluator<V, W>::backtrack_info_t<V, W>
-fastbc::brandes::DijkstraClusterEvaluator<V, W>::dijkstra_SSSP(
+fastbc::brandes::DijkstraClusterEvaluator<V, W>::_dijkstra_SSSP(
 	std::vector<std::shared_ptr<VertexInfo<V, W>>>& globalVI,
 	V src,
 	std::shared_ptr<const ISubGraph<V, W>> graph)

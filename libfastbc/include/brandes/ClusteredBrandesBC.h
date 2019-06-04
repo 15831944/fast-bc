@@ -58,34 +58,37 @@ std::valarray<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 	// Global betweenness centrality storage
 	std::valarray<W> globalBC((W)0, grpah->vertices());
 
-	// Communities vertices information
-	std::vector<std::shared_ptr<VertexInfo<V, W>>> commVertexInfos(graph->vertices(), nullptr);
+	// Vertices topological information about their own cluster border vertices
+	std::vector<std::shared_ptr<VertexInfo<V, W>>> verticesInfo(graph->vertices(), nullptr);
 
-	// Communities pivot vertices
-	std::vector<std::vector<V>> commPivots(communities.size());
+	// Pivot vertices
+	std::vector<V> pivots;
 
-	// For each detected community extract related subgraph and vertex information 
-	// for topological classes construction
-	for (int i = 0; i < commVertexInfos.size(); i++)
+	// Pivot class cardinality for each vertex
+	std::valarray<V> verticesClassCardinality(graph->vertices(), 1);
+
+	// For each detected community extract related sub-graph, evaluate it for internal BC
+	// and perform topological analysis to get pivots and vertices class cardinality
+	for (int i = 0; i < communities.size(); i++)
 	{
 		std::shared_ptr<ISubGraph<V, W>> cluster = std::make_shared<SubGraph<V, W>>(communities[i]->all(), graph);
 
-		_ce.evaluateCluster(commVertexInfos, cluster);
+		_ce.evaluateCluster(globalBC, verticesInfo, cluster);
 
-		commPivots[i] = _ps.selectPivots(commVertexInfos[i]);
+		std::vector<V> clusterPivots = 
+			_ps.selectPivots(globalBC, verticesInfo, verticesClassCardinality, cluster->vertices());
+
+		pivots.insert(pivots.end(), clusterPivots.begin(), clusterPivots.end());
 	}
 
 	std::valarray<W> intraClusterBC(globalBC);
 
 	// Compute pivot contribution
-	for (auto& community : commPivots)
+	for (auto& pivot : pivots)
 	{
-		for (auto& pivot : community)
-		{
-			std::valarray<W> pivotDependency = _ssb.singleSourceBrandes(pivot, graph);
-			// TODO: Compute (d - communityDependency) * pivotClassCardinality
-			// TODO: Sum contribution to globalBC
-		}
+		std::valarray<W> pivotDependency = _ssb.singleSourceBrandes(pivot, graph);
+
+		globalBC += (pivotDependency - intraClusterBC) * verticesClassCardinality;
 	}
 
 	return globalBC;
