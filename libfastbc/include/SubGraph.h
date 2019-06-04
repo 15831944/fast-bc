@@ -4,8 +4,9 @@
 #include "IGraph.h"
 #include "ISubGraph.h"
 
-#include <algorithm>
+#include <map>
 #include <memory>
+#include <set>
 #include <vector>
 
 namespace fastbc {
@@ -24,7 +25,7 @@ namespace fastbc {
 		 *	@param referenceGraph Full graph where the sub-graph is computed
 		 */
 		SubGraph(
-			const std::vector<V>& subGraphVertices, 
+			const std::set<V>& subGraphVertices, 
 			std::shared_ptr<const IGraph<V, W>> referenceGraph);
 
 		W edge(V src, V dest) const override;
@@ -33,13 +34,11 @@ namespace fastbc {
 
 		const std::map<V, W>& backwardStar(V dest) const override;
 
-		const std::vector<V>& verticesList() const override;
-
-		V vertices() const override;
+		const std::set<V>& vertices() const override;
 
 		V edges() const override;
 
-		std::vector<V> borderVertices() const override;
+		const std::set<V>& borders() const override;
 
 		bool isBorder(V vertex) const override;
 
@@ -47,17 +46,18 @@ namespace fastbc {
 
 	private:
 		const std::shared_ptr<const IGraph<V, W>> _referenceGraph;
-		const std::vector<V> _vertices;
+		const std::set<V> _vertices;
 		V _edges;
 		std::map<V, std::map<V, W>> _borderDestWeight;
 		std::map<V, std::map<V, W>> _borderSrcWeight;
+		std::set<V> _borderVertices;
 	};
 
 }
 
 template<typename V, typename W>
 fastbc::SubGraph<V, W>::SubGraph(
-	const std::vector<V>& subGraphVertices, 
+	const std::set<V>& subGraphVertices, 
 	std::shared_ptr<const IGraph<V, W>> referenceGraph)
 	: _referenceGraph(referenceGraph),
 	_vertices(subGraphVertices),
@@ -69,12 +69,13 @@ fastbc::SubGraph<V, W>::SubGraph(
 		const auto& fs = _referenceGraph->forwardStar(v);
 
 		bool isBorder = false;
+		V connections = 0;
 		std::vector<V> outEdges;
 
 		for (auto& e : fs)
 		{
 			// When a vertex has an edge outside the sub-graph set it as border and store outgoing edge
-			if (auto dest = std::find(_vertices.begin(), _vertices.end(), e.first); dest == _vertices.end())
+			if (auto dest = _vertices.find(e.first); dest == _vertices.end())
 			{
 				isBorder = true;
 				outEdges.push_back(e.first);
@@ -90,6 +91,9 @@ fastbc::SubGraph<V, W>::SubGraph(
 			{
 				_borderDestWeight[v].erase(out);
 			}
+			connections += _borderDestWeight[v].size();
+
+			_borderVertices.insert(v);
 		}
 
 		// Update sub-graph edges counter
@@ -103,20 +107,31 @@ fastbc::SubGraph<V, W>::SubGraph(
 		const auto& bs = _referenceGraph->backwardStar(v);
 		for (auto& e : bs)
 		{
-			if (auto src = std::find(_vertices.begin(), _vertices.end(), e.first); src == _vertices.end())
+			if (auto src = _vertices.find(e.first); src == _vertices.end())
 			{
 				isBorder = true;
 				outEdges.push_back(e.first);
 			}
 		}
 
+		// If vertex has been detected as border store a consistent backward star contained in sub-graph
 		if (isBorder)
 		{
+			// Copy backward star from reference graph removing each unnecessary external edge
 			_borderSrcWeight[v] = std::map<V, W>(bs);
 			for (auto& out : outEdges)
 			{
 				_borderSrcWeight[v].erase(out);
 			}
+			connections += _borderSrcWeight[v].size();
+
+			_borderVertices.insert(v);
+		}
+
+		// If a vertex runs out of edges, the sub-graph is not consistent
+		if (isBorder && !connections)
+		{
+			throw std::invalid_argument("Given subgraph has unconnected vertices");
 		}
 	}
 }
@@ -163,15 +178,9 @@ const std::map<V, W>& fastbc::SubGraph<V, W>::backwardStar(V dest) const
 }
 
 template<typename V, typename W>
-const std::vector<V>& fastbc::SubGraph<V, W>::verticesList() const
+const std::set<V>& fastbc::SubGraph<V, W>::vertices() const
 {
 	return _vertices;
-}
-
-template<typename V, typename W>
-V fastbc::SubGraph<V, W>::vertices() const
-{
-	return _vertices.size();
 }
 
 template<typename V, typename W>
@@ -181,22 +190,15 @@ V fastbc::SubGraph<V, W>::edges() const
 }
 
 template<typename V, typename W>
-std::vector<V> fastbc::SubGraph<V, W>::borderVertices() const
+const std::set<V>& fastbc::SubGraph<V, W>::borders() const
 {
-	std::vector<V> borders;
-
-	for (auto& bdw : _borderDestWeight)
-	{
-		borders.push_back(bdw.first);
-	}
-
-	return borders;
+	return _borderVertices;
 }
 
 template<typename V, typename W>
 bool fastbc::SubGraph<V, W>::isBorder(V vertex) const
 {
-	return _borderDestWeight.find(vertex) != _borderDestWeight.end();
+	return _borderVertices.find(vertex) != _borderVertices.end();
 }
 
 template<typename V, typename W>

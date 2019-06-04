@@ -2,7 +2,7 @@
 #define FASTBC_IGRAPH_H
 
 #include <map>
-#include <vector>
+#include <set>
 
 namespace fastbc {
 
@@ -49,16 +49,9 @@ namespace fastbc {
 		/**
 		 *	@brief Get full list ov vertices in this graph
 		 *
-		 *	@return const std::vector<V>& List of vertices' indices
+		 *	@return begin_end_it Begin/end iterators on graph vertices
 		 */
-		virtual const std::vector<V>& verticesList() const = 0;
-
-		/**
-		 *	@brief Get number of graph's vertices
-		 * 
-		 *	@return Graph vertices count
-		 */
-        virtual V vertices() const = 0;
+		virtual const std::set<V>& vertices() const = 0;
 
 		/**
 		 *	@brief Get number of graph's edges

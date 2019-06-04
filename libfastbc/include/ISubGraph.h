@@ -4,7 +4,7 @@
 #include <IGraph.h>
 
 #include <memory>
-#include <vector>
+#include <set>
 
 namespace fastbc {
 
@@ -16,9 +16,9 @@ namespace fastbc {
 		/**
 		 *	@brief Get list of border vertices of this sub-graph
 		 * 
-		 *	@return Border vertices' indices list
+		 *	@return Border vertices' indices iterators
 		 */
-		virtual std::vector<V> borderVertices() const = 0;
+		virtual const std::set<V>& borders() const = 0;
 
 		/**
 		 *	@brief Check if given vertex is at the border of this sub-graph

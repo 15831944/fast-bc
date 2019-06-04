@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <map>
+#include <set>
 #include <vector>
 
 namespace fastbc {
@@ -31,15 +32,13 @@ namespace fastbc {
 
 		const std::map<V, W>& backwardStar(V dest) const override;
 
-		const std::vector<V>& verticesList() const override;
-
-        V vertices() const override;
+		const std::set<V>& vertices() const override;
 
         V edges() const override;
         
     private:
         V _edges;
-		std::vector<V> _vertices;
+		std::set<V> _vertices;
         std::vector<std::map<V, W>> _srcDestWeight;
 		std::vector<std::map<V, W>> _destSrcWeight;
     };   
@@ -87,10 +86,9 @@ fastbc::DirectedWeightedGraph<V, W>::DirectedWeightedGraph(std::istream& inputTe
 	_destSrcWeight.resize(_srcDestWeight.size());
 
 	// Initialize vertices list
-	_vertices.resize(_srcDestWeight.size());
-	for (V v = 0; v < _vertices.size(); v++)
+	for (V v = 0; v < _srcDestWeight.size(); v++)
 	{
-		_vertices[v] = v;
+		_vertices.insert(v);
 	}
 }
 
@@ -120,15 +118,9 @@ const std::map<V, W>& fastbc::DirectedWeightedGraph<V, W>::backwardStar(V dest) 
 }
 
 template<typename V, typename W>
-const std::vector<V>& fastbc::DirectedWeightedGraph<V, W>::verticesList() const
+const std::set<V>& fastbc::DirectedWeightedGraph<V, W>::vertices() const
 {
 	return _vertices;
-}
-
-template<typename V, typename W>
-V fastbc::DirectedWeightedGraph<V, W>::vertices() const
-{
-    return _vertices.size();
 }
 
 template<typename V, typename W>
