@@ -114,22 +114,21 @@ fastbc::brandes::DijkstraClusterEvaluator<V, W>::_dijkstra_SSSP(
 	std::map<V, W> dist;
 	for (const auto& v : graph->vertices()) { dist[v] = std::numeric_limits<W>::max(); }
 
-	// Queue used for the Dijkstra's algorithm. Ordered by nearest vertex
-	std::set<std::pair<W, V>> visitQueue;
+	// Queue used for the Dijkstra's algorithm. Ordered by nearest vertex to src
+	auto distCmp = [&dist](const V& lhs, const V& rhs) { return dist[lhs] < dist[rhs]; };
+	std::set<V, decltype(distCmp)> visitQueue(distCmp);
 
 	// Init src information
 	vertexBInfo[src].sigma = 1;
 	dist[src] = 0;
-	visitQueue.insert(std::make_pair(dist[src], src));
+	visitQueue.insert(src);
 
 	// While there are still elements in the queue.
 	while (!visitQueue.empty())
 	{
-		// Pop the first.
-		auto vPair = visitQueue.begin();
-		V v = vPair->second;
-		W srcDist = vPair->first;
-		visitQueue.erase(vPair);
+		// Pop the first
+		V v = *visitQueue.begin();
+		visitQueue.erase(visitQueue.begin());
 
 		// Push vertex to visited stack
 		visitStack.push(v);
@@ -138,14 +137,14 @@ fastbc::brandes::DijkstraClusterEvaluator<V, W>::_dijkstra_SSSP(
 		for (const auto& it : graph->forwardStar(v))
 		{
 			V w = it.first;
-			W newDist = srcDist + it.second;
+			W newDist = dist[v] + it.second;
 
 			// Node w found for the first time or the new distance is shorter?
 			if (newDist < dist[w])
 			{
-				visitQueue.erase(std::make_pair(dist[w], w));
-				visitQueue.insert(std::make_pair(newDist, w));
+				visitQueue.erase(w);
 				dist[w] = newDist;
+				visitQueue.insert(w);
 				vertexBInfo[w].spPred.clear();
 				vertexBInfo[w].sigma = 0;
 			}

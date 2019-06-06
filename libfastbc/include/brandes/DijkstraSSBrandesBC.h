@@ -50,14 +50,14 @@ std::valarray<W> fastbc::brandes::DijkstraSSBrandesBC<V, W>::singleSourceBrandes
 	std::shared_ptr<const IGraph<V, W>> graph)
 {
 	// Compute shortest path storing border information 
-	backtrack_info_t<V, W> bi = _dijkstra_SSSP(source, cluster);
+	backtrack_info_t<V, W> bi = _dijkstra_SSSP(source, graph);
 	auto& visitStack = bi.visitStack;
 	auto& backtrackInfo = bi.spBacktrack;
 
 	// Partial vertices dependency map
-	std::vector<W> delta(cluster->vertices(), 0);
+	std::vector<W> delta(graph->vertices().size(), 0);
 
-	std::valarray<W> ssBC(graph->vertices().size());
+	std::valarray<W> ssBC((W)0, graph->vertices().size());
 
 	// Backward visit of each vertex from dijkstra iteration 
 	while (!visitStack.empty())
@@ -73,7 +73,7 @@ std::valarray<W> fastbc::brandes::DijkstraSSBrandesBC<V, W>::singleSourceBrandes
 			delta[v] += c;
 		}
 
-		if (w != src)
+		if (w != source)
 		{
 			ssBC[w] += delta[w];
 		}
@@ -95,24 +95,23 @@ fastbc::brandes::DijkstraSSBrandesBC<V, W>::_dijkstra_SSSP(
 	vertexBInfo.resize(graph->vertices().size());
 
 	// Map holding distances from the source.
-	std::vector<W> dist(graph->vertices(), std::numeric_limits<W>::max());
+	std::vector<W> dist(graph->vertices().size(), std::numeric_limits<W>::max());
 
-	// Queue used for the Dijkstra's algorithm. Ordered by nearest vertex
-	std::set<std::pair<W, V>> visitQueue;
+	// Queue used for the Dijkstra's algorithm. Ordered by nearest vertex to src
+	auto distCmp = [&dist](const V& lhs, const V& rhs) { return dist[lhs] < dist[rhs]; };
+	std::set<V, decltype(distCmp)> visitQueue(distCmp);
 
 	// Init src information
 	vertexBInfo[src].sigma = 1;
 	dist[src] = 0;
-	visitQueue.insert(std::make_pair(dist[src], src));
+	visitQueue.insert(src);
 
 	// While there are still elements in the queue.
 	while (!visitQueue.empty())
 	{
-		// Pop the first.
-		auto vPair = visitQueue.begin();
-		V v = vPair->second;
-		W srcDist = vPair->first;
-		visitQueue.erase(vPair);
+		// Pop the first
+		V v = *visitQueue.begin();
+		visitQueue.erase(visitQueue.begin());
 
 		// Push vertex to visited stack
 		visitStack.push(v);
@@ -121,14 +120,14 @@ fastbc::brandes::DijkstraSSBrandesBC<V, W>::_dijkstra_SSSP(
 		for (const auto& it : graph->forwardStar(v))
 		{
 			V w = it.first;
-			W newDist = srcDist + it.second;
+			W newDist = dist[v] + it.second;
 
 			// Node w found for the first time or the new distance is shorter?
 			if (newDist < dist[w])
 			{
-				visitQueue.erase(std::make_pair(dist[w], w));
-				visitQueue.insert(std::make_pair(newDist, w));
+				visitQueue.erase(w);
 				dist[w] = newDist;
+				visitQueue.insert(w);
 				vertexBInfo[w].spPred.clear();
 				vertexBInfo[w].sigma = 0;
 			}

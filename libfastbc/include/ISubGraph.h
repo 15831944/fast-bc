@@ -16,7 +16,7 @@ namespace fastbc {
 		/**
 		 *	@brief Get list of border vertices of this sub-graph
 		 * 
-		 *	@return Border vertices' indices iterators
+		 *	@return const std::set<V>& Border vertices' indices
 		 */
 		virtual const std::set<V>& borders() const = 0;
 

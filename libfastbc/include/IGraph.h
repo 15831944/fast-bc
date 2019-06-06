@@ -47,9 +47,9 @@ namespace fastbc {
 		virtual const std::map<V, W>& backwardStar(V dest) const = 0;
 
 		/**
-		 *	@brief Get full list ov vertices in this graph
+		 *	@brief Get full list of vertices in this graph
 		 *
-		 *	@return begin_end_it Begin/end iterators on graph vertices
+		 *	@return const std::set<V>& Graph vertex indices
 		 */
 		virtual const std::set<V>& vertices() const = 0;
 
