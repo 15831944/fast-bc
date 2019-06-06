@@ -17,7 +17,6 @@ namespace fastbc {
 		class DijkstraClusterEvaluator : public IClusterEvaluator<V, W>
 		{
 		public:
-			DijkstraClusterEvaluator();
 
 			void evaluateCluster(
 				std::valarray<W>& clusterBC,
@@ -48,11 +47,6 @@ namespace fastbc {
 		};
 
 	}
-}
-
-template<typename V, typename W>
-fastbc::brandes::DijkstraClusterEvaluator<V, W>::DijkstraClusterEvaluator()
-{
 }
 
 template<typename V, typename W>

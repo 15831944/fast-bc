@@ -10,13 +10,8 @@ add_subdirectory( libfastbc )
 
 add_executable(fbc main.cpp)
 
-find_package(OpenMP REQUIRED)
-
-target_include_directories(fbc 
-  PRIVATE
-  fastbc )
+set_target_properties(fbc PROPERTIES CXX_STANDARD 17 )
 
 target_link_libraries(fbc 
-  fastbc ${OpenMP_CXX_LIBRARIES})
-
-set_target_properties(fbc PROPERTIES CXX_STANDARD 17 )
+  fastbc 
+  ${OpenMP_CXX_LIBRARIES})

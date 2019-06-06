@@ -53,10 +53,10 @@ std::valarray<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 	const std::shared_ptr<const fastbc::IGraph<V, W>> graph)
 {
 	// Compute graph partition using Louvain communities detection algorithm
-	auto communities = _le->evaluateGraph(graph);
+	auto communities = _le->evaluateGraph(std::static_pointer_cast<const IDegreeGraph<V, W>>(graph));
 
 	// Global betweenness centrality storage
-	std::valarray<W> globalBC((W)0, grpah->vertices().size());
+	std::valarray<W> globalBC((W)0, graph->vertices().size());
 
 	// Vertices topological information about their own cluster border vertices
 	std::vector<std::shared_ptr<VertexInfo<V, W>>> verticesInfo(graph->vertices().size(), nullptr);
@@ -65,7 +65,7 @@ std::valarray<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 	std::vector<V> pivots;
 
 	// Pivot class cardinality for each vertex
-	std::valarray<V> verticesClassCardinality(graph->vertices().size(), 1);
+	std::valarray<W> verticesClassCardinality(graph->vertices().size(), 1);
 
 	// For each detected community extract related sub-graph, evaluate it for internal BC
 	// and perform topological analysis to get pivots and vertices class cardinality
@@ -73,10 +73,10 @@ std::valarray<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 	{
 		std::shared_ptr<ISubGraph<V, W>> cluster = std::make_shared<SubGraph<V, W>>(communities[i]->all(), graph);
 
-		_ce.evaluateCluster(globalBC, verticesInfo, cluster);
+		_ce->evaluateCluster(globalBC, verticesInfo, cluster);
 
 		std::vector<V> clusterPivots = 
-			_ps.selectPivots(globalBC, verticesInfo, verticesClassCardinality, cluster->vertices());
+			_ps->selectPivots(globalBC, verticesInfo, verticesClassCardinality, cluster->vertices());
 
 		pivots.insert(pivots.end(), clusterPivots.begin(), clusterPivots.end());
 	}
@@ -86,7 +86,7 @@ std::valarray<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 	// Compute pivot contribution
 	for (auto& pivot : pivots)
 	{
-		std::valarray<W> pivotDependency = _ssb.singleSourceBrandes(pivot, graph);
+		std::valarray<W> pivotDependency = _ssb->singleSourceBrandes(pivot, graph);
 
 		globalBC += (pivotDependency - intraClusterBC) * verticesClassCardinality;
 	}

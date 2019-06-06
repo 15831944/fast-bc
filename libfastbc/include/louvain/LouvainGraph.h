@@ -7,7 +7,7 @@ namespace fastbc {
 		template<typename V, typename W>
 		class LouvainGraph {
 		 public:
-			typedef std::shared_ptr<IDegreeGraph<V,W>> Graph;
+			typedef std::shared_ptr<const IDegreeGraph<V,W>> Graph;
 			
 			unsigned int nb_nodes;
 			unsigned long nb_links;
@@ -44,7 +44,7 @@ namespace fastbc {
 }
 
 template<typename V, typename W>
-fastbc::louvain::LouvainGraph<V, W>::LouvainGraph(std::shared_ptr<IDegreeGraph<V,W>> graph) {
+fastbc::louvain::LouvainGraph<V, W>::LouvainGraph(Graph graph) {
     nb_nodes = graph->vertices().size();
     nb_links = graph->edges();
 

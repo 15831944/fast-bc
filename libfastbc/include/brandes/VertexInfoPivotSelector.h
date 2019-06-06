@@ -17,7 +17,7 @@ namespace fastbc {
 			std::vector<V> selectPivots(
 				const std::valarray<W>& globalBC,
 				const std::vector<std::shared_ptr<VertexInfo<V, W>>>& verticesInfo,
-				std::valarray<V>& verticesClassCardinality,
+				std::valarray<W>& verticesClassCardinality,
 				const std::set<V>& vertices) override;
 		};
 
@@ -28,7 +28,7 @@ template<typename V, typename W>
 std::vector<V> fastbc::brandes::VertexInfoPivotSelector<V, W>::selectPivots(
 	const std::valarray<W>& globalBC,
 	const std::vector<std::shared_ptr<VertexInfo<V, W>>>& verticesInfo,
-	std::valarray<V>& verticesClassCardinality,
+	std::valarray<W>& verticesClassCardinality,
 	const std::set<V>& vertices)
 {
 	// Vertex info class representative

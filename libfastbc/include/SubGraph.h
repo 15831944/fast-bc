@@ -129,7 +129,7 @@ fastbc::SubGraph<V, W>::SubGraph(
 		}
 
 		// If a vertex runs out of edges, the sub-graph is not consistent
-		if (isBorder && !connections)
+		if (isBorder && !connections && !(_vertices.size() == 1))
 		{
 			throw std::invalid_argument("Given subgraph has unconnected vertices");
 		}

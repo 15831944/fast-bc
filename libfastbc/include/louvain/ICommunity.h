@@ -4,6 +4,7 @@
 #include <IGraph.h>
 
 #include <memory>
+#include <set>
 
 namespace fastbc {
 
@@ -17,9 +18,9 @@ namespace fastbc {
 			/**
 			 *	@brief Get all vertex contained in this community
 			 *
-			 *	@return std::vector<V> Full list of vertex in this community
+			 *	@return const std::set<V>& Full list of vertex in this community
 			 */
-			virtual std::vector<V> all() const = 0;
+			virtual const std::set<V>& all() const = 0;
 
 			/**
 			 *	@brief Check if given vertex is contained in this community

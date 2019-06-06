@@ -3,6 +3,7 @@
 
 #include <louvain/LouvainGraph.h>
 #include <algorithm>
+#include <random>
 
 namespace fastbc {
 	namespace louvain {
@@ -82,7 +83,7 @@ namespace fastbc {
 
 			// compute communities of the graph for one level
 			// return true if some nodes have been moved
-			bool one_level();
+			bool one_level(std::mt19937& seed);
 			bool one_level(std::vector<int> evaluation_order);
 
             void write_communities();
@@ -285,11 +286,11 @@ fastbc::louvain::LouvainGraph<V, W> fastbc::louvain::Partition<V, W>::partition2
  * Maybe use deterministic seed.
  */
 template<typename V, typename W>
-bool fastbc::louvain::Partition<V, W>::one_level() {
+bool fastbc::louvain::Partition<V, W>::one_level(std::mt19937& seed) {
     std::vector<int> random_order(size);
     for (int i=0 ; i<size ; i++)
         random_order[i]=i;
-    std::random_shuffle(random_order.begin(), random_order.end());    
+	std::shuffle(random_order.begin(), random_order.end(), seed);
     return one_level(random_order);
 }
 

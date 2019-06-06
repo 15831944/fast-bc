@@ -2,7 +2,7 @@
 #define FASTBC_LOUVAIN_COMMUNITY_H
 
 #include <louvain/ICommunity.h>
-#include <unordered_set>
+#include <set>
 
 namespace fastbc {
 
@@ -12,16 +12,13 @@ namespace fastbc {
 		class Community : public ICommunity<V,W>
 		{
 		public:
-			Community(std::shared_ptr<const IGraph<V, W>> g) : g(g)
-			{
-				u = std::unordered_set<V>();
-			}
+			Community(std::shared_ptr<const IGraph<V, W>> g) : g(g) {}
 
-			Community(std::unordered_set<V> u, std::shared_ptr<const IGraph<V, W>> g) : u(u), g(g) {}
+			Community(std::set<V> u, std::shared_ptr<const IGraph<V, W>> g) : u(u), g(g) {}
 
-			std::vector<V> all() const override 
+			const std::set<V>& all() const override 
 			{
-				return std::vector(u.begin(), u.end());
+				return u;
 			}
 
 			bool contains(V vertex) const override
@@ -49,7 +46,7 @@ namespace fastbc {
 				return u.size();
 			}
 		private:
-			std::unordered_set<V> u;
+			std::set<V> u;
 			std::shared_ptr<const IGraph<V, W>> g;
 		};
 	}

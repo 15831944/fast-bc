@@ -29,11 +29,12 @@ namespace fastbc {
 			 *	@param verticesInfo Vertex information for each vertex
 			 *	@param verticesClassCardinality Pivot class cardinality associated to each vertex
 			 *	@param vertices Vertices to be considered in the computation
+			 *	@return std::vector<V> Selected pivot vertex indices
 			 */
 			virtual std::vector<V> selectPivots(
 				const std::valarray<W>& globalBC, 
 				const std::vector<std::shared_ptr<VertexInfo<V, W>>>& verticesInfo,
-				std::valarray<V>& verticesClassCardinality,
+				std::valarray<W>& verticesClassCardinality,
 				const std::set<V>& vertices) = 0;
 		};
 

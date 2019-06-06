@@ -54,7 +54,7 @@ TEST_CASE("Pivot selection", "[brandes]")
 	verticesInfo[4]->setBorderSPCount(1, 1);
 	verticesInfo[4]->setBorderSPCount(2, 3);
 
-	std::valarray<int> verticesClassCardinality(globalBC.size());
+	std::valarray<double> verticesClassCardinality(globalBC.size());
 
 	std::set<int> vertices = { 0,1,2,3,4 };
 
