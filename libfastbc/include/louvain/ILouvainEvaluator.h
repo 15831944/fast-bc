@@ -1,7 +1,7 @@
 #ifndef FASTBC_LOUVAIN_ILOUVAINEVALUATOR_H
 #define FASTBC_LOUVAIN_ILOUVAINEVALUATOR_H
 
-#include <IGraph.h>
+#include <IDegreeGraph.h>
 #include <louvain/ICommunity.h>
 #include <louvain/Partition.h>
 
@@ -19,7 +19,7 @@ namespace fastbc {
 			 *	@param graph Graph to evaluate
 			 *	@return std::vector<std::shared_ptr<ICommunity<V,W>>> Vertices communities computed from given graph
 			 */				
-			virtual std::vector<std::shared_ptr<ICommunity<V,W>>> evaluateGraph(std::shared_ptr<IGraph<V,W>> graph) = 0;
+			virtual std::vector<std::shared_ptr<ICommunity<V,W>>> evaluateGraph(std::shared_ptr<IDegreeGraph<V,W>> graph) = 0;
 
 		};
 

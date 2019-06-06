@@ -24,7 +24,7 @@ int main(int argc, char **argv)
 	}
 
 	// Initialize graph object with loaded text file
-	std::shared_ptr<fastbc::IGraph<int, float>> graph = 
+	std::shared_ptr<fastbc::IDegreeGraph<int, float>> graph = 
 		std::make_shared<fastbc::DirectedWeightedGraph<int, float>>(graphTextFile);
 
 	// Print some information about loaded graph
@@ -34,15 +34,6 @@ int main(int argc, char **argv)
 	// TODO: Graph processing
 	
 	fastbc::louvain::ILouvainEvaluator<int, float>* l = new fastbc::louvain::LouvainEvaluator<int, float>();
-	
-	std::vector<std::shared_ptr<fastbc::louvain::ICommunity<int, float>>> p = l->evaluateGraph(graph);
-	for(int i=0; i<p.size(); i++) {
-		std::cout << "Community: " << i << std::endl;
-		std::vector<int> vec = p[i]->all();
-		for(int j=0; j<vec.size(); j++)
-			std::cout << vec[j] << " ";
-		std::cout << std::endl;
-	}
 
 	// TODO: Print computation stats
 

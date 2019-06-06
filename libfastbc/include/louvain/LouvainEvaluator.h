@@ -17,7 +17,7 @@ namespace fastbc {
 	 
 		private:
 			typedef std::vector<std::shared_ptr<ICommunity<V,W>>> Result;
-			typedef std::shared_ptr<IGraph<V,W>> Graph;
+			typedef std::shared_ptr<IDegreeGraph<V,W>> Graph;
 			bool verbose = true;	
 			double precision = 0.01;	
 			int parallelism = 4;

@@ -281,6 +281,9 @@ fastbc::louvain::LouvainGraph<V, W> fastbc::louvain::Partition<V, W>::partition2
     return g2;
 }
 
+/*
+ * Maybe use deterministic seed.
+ */
 template<typename V, typename W>
 bool fastbc::louvain::Partition<V, W>::one_level() {
     std::vector<int> random_order(size);

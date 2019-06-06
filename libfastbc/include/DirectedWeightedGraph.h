@@ -1,7 +1,7 @@
 #ifndef FASTBC_DIRECTED_WEIGHTED_GRAPH_H
 #define FASTBC_DIRECTED_WEIGHTED_GRAPH_H
 
-#include <IGraph.h>
+#include <IDegreeGraph.h>
 
 #include <iostream>
 #include <map>
@@ -10,7 +10,7 @@
 namespace fastbc {
 
     template<typename V, typename W>
-    class DirectedWeightedGraph : public IGraph<V, W>
+    class DirectedWeightedGraph : public IDegreeGraph<V, W>
     {
     public:
 		/**

@@ -10,8 +10,6 @@ add_subdirectory( libfastbc )
 
 add_executable(fbc main.cpp)
 
-set(CMAKE_BUILD_TYPE Debug)
-
 find_package(OpenMP REQUIRED)
 
 target_include_directories(fbc 
