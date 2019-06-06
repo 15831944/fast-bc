@@ -20,7 +20,6 @@ namespace fastbc {
 			 *	@return std::vector<std::shared_ptr<ICommunity<V,W>>> Vertices communities computed from given graph
 			 */				
 			virtual std::vector<std::shared_ptr<ICommunity<V,W>>> evaluateGraph(std::shared_ptr<IDegreeGraph<V,W>> graph) = 0;
-
 		};
 
 	}

@@ -2,10 +2,11 @@
 #define FASTBC_BRANDES_ICLUSTEREVALUATOR_H
 
 #include <ISubGraph.h>
-#include "IVertexInfo.h"
+#include "VertexInfo.h"
 
-#include <map>
 #include <memory>
+#include <valarray>
+#include <vector>
 
 namespace fastbc {
 	namespace brandes {
@@ -16,16 +17,22 @@ namespace fastbc {
 		public:
 
 			/**
-			 *	@brief Evaluate given cluster computing exact betweenness centrality on each vertex
-			 *
-			 *	@details Cluster evaluation will compute exact BC along with some 
-			 *			 additional information about shortest paths to each of the
-			 *			 border vertices
+			 *	@brief Evaluate given sub-graph computing internal exact BC and other vertices information
 			 * 
-			 *	@param cluster Sub-graph object to evaluate
-			 *	@return std::map<V, std::shared_ptr<IVertexInfo>> Computed information for each cluster vertex
+			 *	@details Betweenness centrality for each vertex is calculated along with 
+			 *			 information about distance from border vertices and number of 
+			 *			 shortest paths through them
+			 * 
+			 *	@note clusterBC and globalVI must be already initialized with correct 
+			 *		  size of the global graph referenced by cluster sub-graph
+			 * 
+			 *	@param clusterBC Computed BC value will be summed to given reference
+			 *	@param globalVI A new VertexInfo will be allocated for each of sub-graph vertices
+			 *	@param cluster Sub-graph to apply computation to
 			 */
-			virtual std::map<V, std::shared_ptr<IVertexInfo>> evaluateCluster(
+			virtual void evaluateCluster(
+				std::valarray<W>& clusterBC,
+				std::vector<std::shared_ptr<VertexInfo<V, W>>>& globalVI,
 				std::shared_ptr<const ISubGraph<V,W>> cluster) = 0;
 		};
 

@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 		std::make_shared<fastbc::DirectedWeightedGraph<int, float>>(graphTextFile);
 
 	// Print some information about loaded graph
-	std::cout << "Loaded graph contains " << graph->vertices() << " nodes and " 
+	std::cout << "Loaded graph contains " << graph->vertices().size() << " nodes and " 
 		<< graph->edges() << " edges." << std::endl;
 
 	// TODO: Graph processing
