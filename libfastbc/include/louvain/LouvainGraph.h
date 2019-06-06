@@ -45,7 +45,7 @@ namespace fastbc {
 
 template<typename V, typename W>
 fastbc::louvain::LouvainGraph<V, W>::LouvainGraph(std::shared_ptr<IDegreeGraph<V,W>> graph) {
-    nb_nodes = graph->vertices();
+    nb_nodes = graph->vertices().size();
     nb_links = graph->edges();
 
     indegrees.resize(nb_nodes);

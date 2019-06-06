@@ -14,7 +14,7 @@ TEST_CASE("SubGraph contructor and getters", "[fastbc]")
 	std::ifstream dwgText("DWGtext.txt");
 	if (!dwgText.is_open())
 	{
-		throw std::exception("Unable to read test graph file.");
+		throw std::runtime_error("Unable to read test graph file.");
 	}
 
 	std::shared_ptr<IGraph<int, double>> graph;

@@ -59,16 +59,6 @@ namespace fastbc {
 		 *	@return Graph edges count
 		 */
         virtual V edges() const = 0;
-
-        virtual void addEdge(V from, V to, W weight) = 0;
-
-        virtual void initVertices() = 0;
-
-        virtual W totalWeight() const = 0;
-
-        virtual W inWeightedDegree(V v) const = 0;
-
-        virtual W outWeightedDegree(V v) const = 0;
     };    
 
 }

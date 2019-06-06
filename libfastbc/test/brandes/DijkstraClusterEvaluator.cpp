@@ -17,7 +17,7 @@ TEST_CASE("Dijkstra cluster evaluation test", "[brandes]")
 	std::ifstream dwgText("DWGtext.txt");
 	if (!dwgText.is_open())
 	{
-		throw std::exception("Unable to read test graph file.");
+		throw std::runtime_error("Unable to read test graph file.");
 	}
 
 	std::shared_ptr<fastbc::IGraph<int, float>> fullGraph = 
