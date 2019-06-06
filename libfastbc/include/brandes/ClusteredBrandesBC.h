@@ -56,16 +56,16 @@ std::valarray<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 	auto communities = _le->evaluateGraph(graph);
 
 	// Global betweenness centrality storage
-	std::valarray<W> globalBC((W)0, grpah->vertices());
+	std::valarray<W> globalBC((W)0, grpah->vertices().size());
 
 	// Vertices topological information about their own cluster border vertices
-	std::vector<std::shared_ptr<VertexInfo<V, W>>> verticesInfo(graph->vertices(), nullptr);
+	std::vector<std::shared_ptr<VertexInfo<V, W>>> verticesInfo(graph->vertices().size(), nullptr);
 
 	// Pivot vertices
 	std::vector<V> pivots;
 
 	// Pivot class cardinality for each vertex
-	std::valarray<V> verticesClassCardinality(graph->vertices(), 1);
+	std::valarray<V> verticesClassCardinality(graph->vertices().size(), 1);
 
 	// For each detected community extract related sub-graph, evaluate it for internal BC
 	// and perform topological analysis to get pivots and vertices class cardinality
