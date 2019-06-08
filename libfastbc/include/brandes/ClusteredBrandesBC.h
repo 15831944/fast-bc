@@ -79,10 +79,6 @@ std::valarray<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 		std::cout << "Computing local BC for community " << i << std::endl;
 		_ce->evaluateCluster(globalBC, verticesInfo, cluster);
 
-		for(auto& n : communities[i]->all())
-			std::cout << n << " -> " << globalBC[n] << std::endl;
-		std::cout << std::endl; 
-
 		std::cout << "Selecting pivots for community " << i << std::endl;
 		std::vector<V> clusterPivots = 
 			_ps->selectPivots(globalBC, verticesInfo, verticesClassCardinality, cluster->vertices(), cluster->borders());
