@@ -191,6 +191,7 @@ V fastbc::brandes::VertexInfo<V, W>::getBorderSPCount(int storeIndex) const
 template<typename V, typename W>
 W fastbc::brandes::VertexInfo<V, W>::getMinBorderSPLength() const
 {
+	if(_borderSPLength.size() == 0) return 0;
 	return *std::min_element(_borderSPLength.begin(), _borderSPLength.end());
 }
 
