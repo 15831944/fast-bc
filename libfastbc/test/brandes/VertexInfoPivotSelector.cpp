@@ -57,11 +57,12 @@ TEST_CASE("Pivot selection", "[brandes]")
 	std::valarray<double> verticesClassCardinality(globalBC.size());
 
 	std::set<int> vertices = { 0,1,2,3,4 };
+	std::set<int> borders = {};
 
 	VertexInfoPivotSelector<int, double> ps;
 
 	std::vector<int> pivots = 
-		ps.selectPivots(globalBC, verticesInfo, verticesClassCardinality, vertices);
+		ps.selectPivots(globalBC, verticesInfo, verticesClassCardinality, vertices, borders);
 
 	REQUIRE(pivots.size() == 3);
 

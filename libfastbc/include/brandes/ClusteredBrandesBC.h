@@ -62,7 +62,6 @@ std::valarray<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 	std::valarray<W> globalBC((W)0, graph->vertices().size());
 
 	// Vertices topological information about their own cluster border vertices
-
 	std::vector<std::shared_ptr<VertexInfo<V, W>>> verticesInfo(graph->vertices().size(), nullptr);
 
 	// Pivot vertices
@@ -82,7 +81,7 @@ std::valarray<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 
 		std::cout << "Selecting pivots for community " << i << std::endl;
 		std::vector<V> clusterPivots = 
-			_ps->selectPivots(globalBC, verticesInfo, verticesClassCardinality, cluster->vertices());
+			_ps->selectPivots(globalBC, verticesInfo, verticesClassCardinality, cluster->vertices(), cluster->borders());
 
 		pivots.insert(pivots.end(), clusterPivots.begin(), clusterPivots.end());
 	}

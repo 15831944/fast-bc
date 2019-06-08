@@ -18,7 +18,8 @@ namespace fastbc {
 				const std::valarray<W>& globalBC,
 				const std::vector<std::shared_ptr<VertexInfo<V, W>>>& verticesInfo,
 				std::valarray<W>& verticesClassCardinality,
-				const std::set<V>& vertices) override;
+				const std::set<V>& vertices,
+				const std::set<V>& borders) override;
 		};
 
 	}
@@ -29,7 +30,8 @@ std::vector<V> fastbc::brandes::VertexInfoPivotSelector<V, W>::selectPivots(
 	const std::valarray<W>& globalBC,
 	const std::vector<std::shared_ptr<VertexInfo<V, W>>>& verticesInfo,
 	std::valarray<W>& verticesClassCardinality,
-	const std::set<V>& vertices)
+	const std::set<V>& vertices,
+	const std::set<V>& borders)
 {
 	// Vertex info class representative
 	std::vector<std::shared_ptr<VertexInfo<V, W>>> classes;
@@ -75,13 +77,21 @@ std::vector<V> fastbc::brandes::VertexInfoPivotSelector<V, W>::selectPivots(
 	{
 		const auto& classM = classMembers[i];
 
-		V minV = classM[0];
+		// Find first non border node
+		int j = 0;
+		while(borders.find(classM[j]) != borders.end()) j++;
+		V minV;
+		if(j < classM.size())
+			minV = classM[j];
+		else
+			minV = classM[0];
 
 		for (auto& v : classM)
 		{
 			verticesClassCardinality[v] = classM.size();
 
-			if (globalBC[v] < globalBC[minV])
+			// ONLY NON-BORDER NODES CAN BE SELECTED AS PIVOTS
+			if (borders.find(v) == borders.end() && globalBC[v] < globalBC[minV])
 			{
 				minV = v;
 			}

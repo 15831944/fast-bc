@@ -35,7 +35,8 @@ namespace fastbc {
 				const std::valarray<W>& globalBC, 
 				const std::vector<std::shared_ptr<VertexInfo<V, W>>>& verticesInfo,
 				std::valarray<W>& verticesClassCardinality,
-				const std::set<V>& vertices) = 0;
+				const std::set<V>& vertices,
+				const std::set<V>& borders) = 0;
 		};
 
 	}
