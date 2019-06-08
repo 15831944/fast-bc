@@ -109,7 +109,11 @@ fastbc::brandes::DijkstraClusterEvaluator<V, W>::_dijkstra_SSSP(
 	for (const auto& v : graph->vertices()) { dist[v] = std::numeric_limits<W>::max(); }
 
 	// Queue used for the Dijkstra's algorithm. Ordered by nearest vertex to src
-	auto distCmp = [&dist](const V& lhs, const V& rhs) { return dist[lhs] < dist[rhs]; };
+	auto distCmp = [&dist](const V& lhs, const V& rhs) { 
+		if(dist[lhs] == dist[rhs])
+			return lhs < rhs;
+		return dist[lhs] < dist[rhs]; 
+	};
 	std::set<V, decltype(distCmp)> visitQueue(distCmp);
 
 	// Init src information
