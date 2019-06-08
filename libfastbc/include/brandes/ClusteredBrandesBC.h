@@ -94,7 +94,7 @@ std::valarray<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 	{
 		std::valarray<W> pivotDependency = _ssb->singleSourceBrandes(pivot, graph);
 
-		globalBC += (pivotDependency - intraClusterBC) * verticesClassCardinality;
+		globalBC += (pivotDependency - intraClusterBC) * verticesClassCardinality + intraClusterBC;
 	}
 
 	return globalBC;
