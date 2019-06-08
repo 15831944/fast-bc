@@ -69,7 +69,7 @@ std::valarray<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 	std::vector<V> pivots;
 
 	// Pivot class cardinality for each vertex
-	std::valarray<W> verticesClassCardinality(graph->vertices().size(), 1);
+	std::valarray<W> verticesClassCardinality(1, graph->vertices().size());
 
 	// For each detected community extract related sub-graph, evaluate it for internal BC
 	// and perform topological analysis to get pivots and vertices class cardinality
