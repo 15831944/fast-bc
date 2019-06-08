@@ -12,6 +12,7 @@
 #include <memory>
 #include <valarray>
 #include <vector>
+#include <iostream>
 
 namespace fastbc {
 	namespace brandes {
@@ -53,12 +54,15 @@ std::valarray<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 	const std::shared_ptr<const fastbc::IGraph<V, W>> graph)
 {
 	// Compute graph partition using Louvain communities detection algorithm
+	std::cout << "Computing communities." << std::endl;
 	auto communities = _le->evaluateGraph(std::static_pointer_cast<const IDegreeGraph<V, W>>(graph));
+	std::cout << "Founded " << communities.size() << " communities." << std::endl;
 
 	// Global betweenness centrality storage
 	std::valarray<W> globalBC((W)0, graph->vertices().size());
 
 	// Vertices topological information about their own cluster border vertices
+
 	std::vector<std::shared_ptr<VertexInfo<V, W>>> verticesInfo(graph->vertices().size(), nullptr);
 
 	// Pivot vertices
@@ -73,8 +77,10 @@ std::valarray<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 	{
 		std::shared_ptr<ISubGraph<V, W>> cluster = std::make_shared<SubGraph<V, W>>(communities[i]->all(), graph);
 
+		std::cout << "Computing local BC for community " << i << std::endl;
 		_ce->evaluateCluster(globalBC, verticesInfo, cluster);
 
+		std::cout << "Selecting pivots for community " << i << std::endl;
 		std::vector<V> clusterPivots = 
 			_ps->selectPivots(globalBC, verticesInfo, verticesClassCardinality, cluster->vertices());
 
@@ -84,6 +90,7 @@ std::valarray<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 	std::valarray<W> intraClusterBC(globalBC);
 
 	// Compute pivot contribution
+	std::cout << "Computing global BC with selected pivots." << std::endl;
 	for (auto& pivot : pivots)
 	{
 		std::valarray<W> pivotDependency = _ssb->singleSourceBrandes(pivot, graph);
