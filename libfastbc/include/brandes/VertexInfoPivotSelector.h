@@ -4,6 +4,7 @@
 #include "IPivotSelector.h"
 
 #include <memory>
+#include <spdlog/spdlog.h>
 #include <vector>
 
 namespace fastbc {
@@ -70,24 +71,39 @@ std::vector<V> fastbc::brandes::VertexInfoPivotSelector<V, W>::selectPivots(
 	}
 
 	// Classes pivot result
-	std::vector<V> pivotVertices(classes.size());
+	std::vector<V> pivotVertices;
 
 	// Update each vertex class cardinality and select vertex with minimum BC as pivot
-	for (V i = 0; i < classes.size(); ++i)
+	for (const auto& classM : classMembers)
 	{
-		const auto& classM = classMembers[i];
-
-		// Find first non border node
+		// Try find first non-border node
 		int j = 0;
-		while(borders.find(classM[j]) != borders.end()) j++;
-		V minV;
-		if(j < classM.size())
-			minV = classM[j];
-		else
-			minV = classM[0];
-
-		for (auto& v : classM)
+		while (j < classM.size())
 		{
+			if (borders.find(classM[j]) != borders.end())
+			{
+				verticesClassCardinality[classM[j]] = classM.size();
+				++j;
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		// If class has only border vertices
+		if (j == classM.size())
+		{
+			SPDLOG_WARN("Topological class contains only border vertices");
+			continue;
+		}
+
+		// First eligible pivot node
+		V minV = classM[j];
+
+		for (; j < classM.size(); ++j)
+		{
+			V v = classM[j];
 			verticesClassCardinality[v] = classM.size();
 
 			// ONLY NON-BORDER NODES CAN BE SELECTED AS PIVOTS
@@ -97,7 +113,7 @@ std::vector<V> fastbc::brandes::VertexInfoPivotSelector<V, W>::selectPivots(
 			}
 		}
 
-		pivotVertices[i] = minV;
+		pivotVertices.push_back(minV);
 	}
 
 	return pivotVertices;

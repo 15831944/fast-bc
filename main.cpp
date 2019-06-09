@@ -1,4 +1,7 @@
 #include "popl.hpp"
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/wincolor_sink.h>
 
 #include <DirectedWeightedGraph.h>
 #include <brandes/DijkstraClusterEvaluator.h>
@@ -20,14 +23,18 @@
 #define FASTBC_W_TYPE double
 #endif // !FASTBC_W_TYPE
 
-
+#ifndef SPDLOG_ACTIVE_LEVEL
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+#endif
 
 int main(int argc, char **argv)
 {
-	std::string edgeListPath, outBCPath, louvainSeed;
+	/*
+	 *	Program options 
+	 */
+	std::string edgeListPath, outBCPath, louvainSeed, loggerLevel;
 	int louvainExecutors;
 	double louvainPrecision;
-	bool traceOn;
 
 	popl::OptionParser op("Usage: fastbc [ options ] <edge_list_path>");
 	auto ls = op.add<popl::Value<std::string>, popl::Attribute::optional>(
@@ -50,10 +57,11 @@ int main(int argc, char **argv)
 		"Output file path",
 		"bc.txt",
 		&outBCPath);
-	op.add<popl::Switch, popl::Attribute::optional>(
+	op.add<popl::Value<std::string>, popl::Attribute::optional>(
 		"d", "debug",
-		"Print centroids at each iteration step",
-		&traceOn
+		"Logger level (trace|debug|info|warning|error|critical|off)",
+		"info",
+		&loggerLevel
 		);
 
 	try {
@@ -68,7 +76,7 @@ int main(int argc, char **argv)
 	// Check if input file has been given
 	if (op.non_option_args().size() != 1)
 	{
-		std::cout << "Missing edge list file path." << std::endl << std::endl << op.help();
+		std::cout << "Missing input file path" << "\n\n" << op.help();
 		return -1;
 	}
 	else
@@ -76,11 +84,16 @@ int main(int argc, char **argv)
 		edgeListPath = op.non_option_args().front();
 	}
 
+	// Setup logger
+	spdlog::set_default_logger(spdlog::stdout_color_mt("fastbc"));
+	spdlog::set_pattern("[%H:%M:%S.%f] %^[%=9l]%$ [%=7t] [%!]\n\t%v");
+	spdlog::set_level(spdlog::level::from_str(loggerLevel));
+
 	// Check bc output file
 	std::ifstream outFileTest(outBCPath, std::ifstream::in);
 	if (outFileTest.good())
 	{
-		std::cout << "File " << outBCPath << " already existing." << std::endl;
+		SPDLOG_CRITICAL("File \"{}\" already existing", outBCPath);
 		return -2;
 	}
 	outFileTest.close();
@@ -91,7 +104,7 @@ int main(int argc, char **argv)
 	{
 		if (!le->is_set())
 		{
-			std::cout << "Louvain executors count must be set to allow executors seeds to be set." << std::endl;
+			SPDLOG_CRITICAL("Louvain executors count must be set to allow executors seeds to be set.");
 			return -1;
 		}
 
@@ -102,7 +115,7 @@ int main(int argc, char **argv)
 		{
 			if (!seed.insert(s).second)
 			{
-				std::cout << "Duplicate value in louvain seeds, each seed must be unique." << std::endl;
+				SPDLOG_CRITICAL("Duplicate value in louvain seeds, each seed must be unique.");
 				return -1;
 			}
 
@@ -114,7 +127,7 @@ int main(int argc, char **argv)
 
 		if (seed.size() != louvainExecutors)
 		{
-			std::cout << "Louvain seeds count is different from louvain executors count." << std::endl;
+			SPDLOG_CRITICAL("Louvain seeds count is different from louvain executors count.");
 			return -1;
 		}
 	}
@@ -126,12 +139,20 @@ int main(int argc, char **argv)
 		}
 	}
 
+	/*
+	 *	Program options end
+	 */
 
+
+
+	/*
+	 *	Program initialization
+	 */
 	// Open graph text file
 	std::ifstream graphTextFile(edgeListPath);
 	if (!graphTextFile.is_open())
 	{
-		std::cout << "There was an error opening given edge list file path." << std::endl;
+		SPDLOG_CRITICAL("There was an error opening given edge list file path.");
 		return -1;
 	}
 
@@ -140,13 +161,12 @@ int main(int argc, char **argv)
 		std::make_shared<fastbc::DirectedWeightedGraph<FASTBC_V_TYPE, FASTBC_W_TYPE>>(graphTextFile);
 
 	// Print some information about loaded graph
-	std::cout << "Loaded graph contains " << graph->vertices().size() << " nodes and " 
-		<< graph->edges() << " edges." << std::endl;
+	SPDLOG_INFO("Loaded graph contains {} vertices and {} edges", graph->vertices().size(), graph->edges());
 
 
 	std::shared_ptr<fastbc::louvain::ILouvainEvaluator<FASTBC_V_TYPE, FASTBC_W_TYPE>> louvainEvaluator =
 		std::make_shared<fastbc::louvain::LouvainEvaluator<FASTBC_V_TYPE, FASTBC_W_TYPE>>(
-			seed, louvainPrecision, traceOn);
+			seed, louvainPrecision);
 
 	std::shared_ptr<fastbc::brandes::IClusterEvaluator<FASTBC_V_TYPE, FASTBC_W_TYPE>> clusterEvaluator =
 		std::make_shared<fastbc::brandes::DijkstraClusterEvaluator<FASTBC_V_TYPE, FASTBC_W_TYPE>>();
@@ -162,6 +182,10 @@ int main(int argc, char **argv)
 		std::make_shared<fastbc::brandes::ClusteredBrandeBC<FASTBC_V_TYPE, FASTBC_W_TYPE>>(
 			louvainEvaluator, clusterEvaluator, singleSourceBC, pivotSelector);
 
+	/*
+	 *	Program initialization end
+	 */
+
 
 	auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -171,13 +195,18 @@ int main(int argc, char **argv)
 	auto milliTime = std::chrono::duration_cast<std::chrono::milliseconds>(totalTime).count();
 	auto microTime = std::chrono::duration_cast<std::chrono::microseconds>(totalTime).count() - milliTime * 1000;
 
-	std::cout << "Total computation time: " << milliTime << "." << microTime << "ms\n";
+	SPDLOG_INFO("Total computation time: {}.{}ms", milliTime, microTime);
 
+	/*
+	 *	Save results
+	 */
 	std::ofstream outFile(outBCPath, std::ofstream::out);
 	for (size_t i = 0; i < bc.size(); ++i)
 	{
 		outFile << bc[i] << std::endl;
 	}
+
+	SPDLOG_INFO("Results written to \"{}\"", outBCPath);
 
 	return 0;
 }

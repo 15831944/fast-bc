@@ -55,7 +55,7 @@ void fastbc::brandes::DijkstraClusterEvaluator<V, W>::evaluateCluster(
 	std::vector<std::shared_ptr<VertexInfo<V, W>>>& globalVI,
 	std::shared_ptr<const ISubGraph<V, W>> cluster)
 {
-	// Partial vertices dependency map
+	// Partial dependency vertices map
 	std::map<V, W> delta;
 	for (const auto& v : cluster->vertices()) { delta[v] = 0; }
 

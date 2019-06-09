@@ -5,8 +5,10 @@
 #include <louvain/LouvainGraph.h>
 #include <louvain/Partition.h>
 #include <louvain/Community.h>
-#include <ctime>
+
+#include <memory>
 #include <random>
+#include <spdlog/spdlog.h>
 #include <omp.h>
 
 namespace fastbc {
@@ -20,17 +22,9 @@ namespace fastbc {
 			typedef std::vector<std::shared_ptr<ICommunity<V,W>>> Result;
 			typedef std::shared_ptr<const IDegreeGraph<V,W>> Graph;
 
-			bool _verbose;	
 			double _precision;	
 			int _parallelism;
 			std::vector<std::mt19937> _seed;
-
-			void
-			display_time(const char *str) {
-				time_t rawtime;
-				time ( &rawtime );
-				std::cout << str << ": " << ctime (&rawtime);
-			}
 
 			void
 			renumber_communities(std::vector<V>& comms, const std::vector<V>& n2c) {
@@ -76,9 +70,8 @@ namespace fastbc {
 		public:
 			LouvainEvaluator(
 				const std::set<std::mt19937::result_type>& seeds, 
-				double precision = 0.01, 
-				bool verbose = false)
-				: _parallelism(seeds.size()), _precision(precision), _verbose(verbose)
+				double precision = 0.01)
+				: _parallelism(seeds.size()), _precision(precision)
 			{
 				for (auto& seed : seeds)
 				{
@@ -88,11 +81,6 @@ namespace fastbc {
 				
 			Result evaluateGraph(Graph graph) override
 			{
-			    time_t time_begin, time_end;
-			    time(&time_begin);
-			    if (_verbose)
-			        display_time("Begin");
-
 			    LouvainGraph<V, W> g(graph);
 			    std::vector<Partition<V, W> > p(_parallelism, Partition<V, W>(g, _precision));
 			    std::vector<V> n2c(g.nb_nodes);
@@ -106,14 +94,8 @@ namespace fastbc {
 			    int level=0;
 
 			    do {
-			        if (_verbose) {
-			            std::cout << "level " << level << ":\n";
-			            display_time("    start computation");
-			            std::cout << "    network size: " 
-				     << g.nb_nodes << " nodes, " 
-				     << g.nb_links << " links, "
-				     << g.total_weight << " weight." << std::endl;
-			        }
+					SPDLOG_INFO("Level: {}\n\tNetwork size: {} vertices, {} edges, {} weight",
+						level, g.nb_nodes, g.nb_links, g.total_weight);
 
 			        #pragma omp parallel for
 			        for(int i=0; i<_parallelism; i++) {
@@ -133,22 +115,14 @@ namespace fastbc {
 			        for(int i=0; i<_parallelism; i++)
 			        	p[i] = Partition<V, W> (g, _precision);
 
-			        if (_verbose)
-			            std::cout << "  modularity increased from " << mod << " to " << new_mod << std::endl;
+					SPDLOG_INFO("Modularity increased from {} to {}", mod, new_mod);
 
-			        mod=new_mod;
-			        if (_verbose)
-			            display_time("  end computation");
-			       level++;
+			        mod = new_mod;
+					
+					level++;
 			    } while(improvement);
 
-			    time(&time_end);
-			    if (_verbose) {
-			        display_time("End");
-			        std::cout << "Total duration: " << (time_end-time_begin) << " sec." << std::endl; 
-			    }
-			    std::cout << new_mod << std::endl;
-			    std::cout << std::endl;
+				SPDLOG_INFO("Final modularity {}", new_mod);
 
 				return build_result(n2c, graph);
 			}

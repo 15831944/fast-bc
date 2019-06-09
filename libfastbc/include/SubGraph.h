@@ -7,6 +7,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <spdlog/spdlog.h>
 #include <vector>
 
 namespace fastbc {
@@ -129,10 +130,14 @@ fastbc::SubGraph<V, W>::SubGraph(
 		}
 
 		// If a vertex runs out of edges, the sub-graph is not consistent
-		/*if (isBorder && !connections && !(_vertices.size() == 1))
+		if (isBorder && !connections && !(_vertices.size() == 1))
 		{
+			SPDLOG_WARN("Vertex {} is unconnected in its cluster", v);
+
+#ifdef FASTBC_SUBGRAPH_CONNECTED_ONLY
 			throw std::invalid_argument("Given subgraph has unconnected vertices");
-		}*/
+#endif
+		}
 	}
 }
 
