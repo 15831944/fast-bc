@@ -23,7 +23,9 @@ TEST_CASE("SubGraph contructor and getters", "[fastbc]")
 
 	std::shared_ptr<ISubGraph<int, double>> subGraph;
 
+#ifdef FASTBC_SUBGRAPH_CONNECTED_ONLY
 	REQUIRE_THROWS(subGraph = std::make_shared<SubGraph<int, double>>(std::set<int>({ 0, 1, 2, 3, 6 }), graph));
+#endif
 
 	REQUIRE_NOTHROW(subGraph = std::make_shared<SubGraph<int, double>>(std::set<int>({ 0, 1, 2, 3, 4 }), graph));
 

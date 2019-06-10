@@ -54,25 +54,22 @@ TEST_CASE("Pivot selection", "[brandes]")
 	verticesInfo[4]->setBorderSPCount(1, 1);
 	verticesInfo[4]->setBorderSPCount(2, 3);
 
-	std::valarray<double> verticesClassCardinality(globalBC.size());
-
 	std::set<int> vertices = { 0,1,2,3,4 };
 	std::set<int> borders = {};
 
 	VertexInfoPivotSelector<int, double> ps;
 
-	std::vector<int> pivots = 
-		ps.selectPivots(globalBC, verticesInfo, verticesClassCardinality, vertices, borders);
+	std::pair<std::vector<int>, std::vector<int>> pivots = 
+		ps.selectPivots(globalBC, verticesInfo, vertices, borders);
 
-	REQUIRE(pivots.size() == 3);
+	REQUIRE(pivots.first.size() == 3);
+	REQUIRE(pivots.second.size() == 3);
 
-	REQUIRE(std::find(pivots.begin(), pivots.end(), 0) != pivots.end());
-	REQUIRE(std::find(pivots.begin(), pivots.end(), 3) != pivots.end());
-	REQUIRE(std::find(pivots.begin(), pivots.end(), 4) != pivots.end());
+	REQUIRE(std::find(pivots.first.begin(), pivots.first.end(), 0) != pivots.first.end());
+	REQUIRE(std::find(pivots.first.begin(), pivots.first.end(), 3) != pivots.first.end());
+	REQUIRE(std::find(pivots.first.begin(), pivots.first.end(), 4) != pivots.first.end());
 
-	REQUIRE(verticesClassCardinality[0] == 2);
-	REQUIRE(verticesClassCardinality[1] == 2);
-	REQUIRE(verticesClassCardinality[2] == 2);
-	REQUIRE(verticesClassCardinality[3] == 2);
-	REQUIRE(verticesClassCardinality[4] == 1);
+	REQUIRE(pivots.second[0] == 2);
+	REQUIRE(pivots.second[1] == 2);
+	REQUIRE(pivots.second[2] == 1);
 }

@@ -15,10 +15,9 @@ namespace fastbc {
 		{
 		public:
 
-			std::vector<V> selectPivots(
+			std::pair<std::vector<V>, std::vector<V>> selectPivots(
 				const std::valarray<W>& globalBC,
 				const std::vector<std::shared_ptr<VertexInfo<V, W>>>& verticesInfo,
-				std::valarray<W>& verticesClassCardinality,
 				const std::set<V>& vertices,
 				const std::set<V>& borders) override;
 		};
@@ -27,10 +26,9 @@ namespace fastbc {
 }
 
 template<typename V, typename W>
-std::vector<V> fastbc::brandes::VertexInfoPivotSelector<V, W>::selectPivots(
+std::pair<std::vector<V>, std::vector<V>> fastbc::brandes::VertexInfoPivotSelector<V, W>::selectPivots(
 	const std::valarray<W>& globalBC,
 	const std::vector<std::shared_ptr<VertexInfo<V, W>>>& verticesInfo,
-	std::valarray<W>& verticesClassCardinality,
 	const std::set<V>& vertices,
 	const std::set<V>& borders)
 {
@@ -70,8 +68,10 @@ std::vector<V> fastbc::brandes::VertexInfoPivotSelector<V, W>::selectPivots(
 		}
 	}
 
-	// Classes pivot result
-	std::vector<V> pivotVertices;
+	SPDLOG_INFO("Found {} topological classes in current cluster", classes.size());
+
+	// Classes pivot and cardinality
+	std::pair<std::vector<V>, std::vector<V>> pivot;
 
 	// Update each vertex class cardinality and select vertex with minimum BC as pivot
 	for (const auto& classM : classMembers)
@@ -82,7 +82,6 @@ std::vector<V> fastbc::brandes::VertexInfoPivotSelector<V, W>::selectPivots(
 		{
 			if (borders.find(classM[j]) != borders.end())
 			{
-				verticesClassCardinality[classM[j]] = classM.size();
 				++j;
 			}
 			else
@@ -94,7 +93,14 @@ std::vector<V> fastbc::brandes::VertexInfoPivotSelector<V, W>::selectPivots(
 		// If class has only border vertices
 		if (j == classM.size())
 		{
-			SPDLOG_WARN("Topological class contains only border vertices");
+			
+#ifdef FASTBC_BRANDES_ENABLE_PIVOT_BORDER
+			SPDLOG_WARN("Topological class contains only border vertices: selecting first as pivot");
+			pivot.first.push_back(classM[0]);
+			pivot.second.push_back(classM.size());
+#else
+			SPDLOG_WARN("Topological class contains only border vertices: no pivot was selected");
+#endif
 			continue;
 		}
 
@@ -104,7 +110,6 @@ std::vector<V> fastbc::brandes::VertexInfoPivotSelector<V, W>::selectPivots(
 		for (; j < classM.size(); ++j)
 		{
 			V v = classM[j];
-			verticesClassCardinality[v] = classM.size();
 
 			// ONLY NON-BORDER NODES CAN BE SELECTED AS PIVOTS
 			if (borders.find(v) == borders.end() && globalBC[v] < globalBC[minV])
@@ -113,10 +118,12 @@ std::vector<V> fastbc::brandes::VertexInfoPivotSelector<V, W>::selectPivots(
 			}
 		}
 
-		pivotVertices.push_back(minV);
+		// Store selected pivot and related class cardinality
+		pivot.first.push_back(minV);
+		pivot.second.push_back(classM.size());
 	}
 
-	return pivotVertices;
+	return pivot;
 }
 
 #endif

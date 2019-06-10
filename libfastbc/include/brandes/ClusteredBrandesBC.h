@@ -62,11 +62,8 @@ std::valarray<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 	// Computed subgraph and border vertices from each vertices community
 	std::vector<std::shared_ptr<ISubGraph<V, W>>> cluster;
 
-	// Pivot vertices for each cluster
-	std::vector<std::vector<V>> pivotsCluster;
-
-	// Pivot class cardinality for each vertex
-	std::valarray<W> verticesClassCardinality((W)1, graph->vertices().size());
+	// Pivot vertices and related class cardinality for each cluster
+	std::vector<std::pair<std::vector<V>, std::vector<V>>> pivotsCluster;
 
 	// Compute graph partition using Louvain communities detection algorithm
 	SPDLOG_INFO("Computing clusters with Louvain algorithm");
@@ -83,25 +80,30 @@ std::valarray<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 	{
 		cluster[i] = std::make_shared<SubGraph<V, W>>(communities[i]->all(), graph);
 
-		SPDLOG_INFO("Evaluating BC on cluster {}: {} vertices, {} edges", 
-			i, cluster[i]->vertices().size(), cluster[i]->edges());
+		SPDLOG_INFO("Evaluating BC on cluster {}: {} vertices ({} borders), {} edges", 
+			i, cluster[i]->vertices().size(), cluster[i]->borders().size(), cluster[i]->edges());
+#if SPDLOG_ACTIVE_LEVEL <= SPDLOG_LEVEL_ERROR
+		if (cluster[i]->borders().empty())
+		{
+			SPDLOG_ERROR("Cluster {} is disconnected from the rest of the graph, please check your input!");
+		}
+#endif
 		_ce->evaluateCluster(globalBC, verticesInfo, cluster[i]);
 
 		pivotsCluster[i] = _ps->selectPivots(
-			globalBC, verticesInfo, verticesClassCardinality, 
+			globalBC, verticesInfo, 
 			cluster[i]->vertices(), cluster[i]->borders());
 
-		SPDLOG_INFO("Selected {} vertices as pivots in cluster {}", pivotsCluster[i].size(), i);
+		SPDLOG_INFO("Selected {} vertices as pivots in cluster {}", pivotsCluster[i].first.size(), i);
 	}
 
 	std::valarray<W> intraClusterBC(globalBC);
-
 	
 #if SPDLOG_ACTIVE_LEVEL <= SPDLOG_LEVEL_INFO
 	size_t pivotCount = 0;
 	for (const auto& pc : pivotsCluster)
 	{
-		pivotCount += pc.size();
+		pivotCount += pc.first.size();
 	}
 	SPDLOG_INFO("Computing global BC from {} pivots", pivotCount);
 #endif
@@ -109,17 +111,18 @@ std::valarray<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 	// Compute global dependecy pivot contribution
 	for (size_t c = 0; c < cluster.size(); ++c)
 	{
-		for (size_t p = 0; p < pivotsCluster[c].size(); ++p)
+		for (size_t p = 0; p < pivotsCluster[c].first.size(); ++p)
 		{
-			std::valarray<W> pivotDependency = _ssb->singleSourceBrandes(pivotsCluster[c][p], graph);
+			std::valarray<W> pivotDependency = 
+				_ssb->singleSourceBrandes(pivotsCluster[c].first[p], graph);
 
 			// Sum pivot dependecy to all vertices
-			globalBC += pivotDependency * verticesClassCardinality[pivotsCluster[c][p]];
+			globalBC += pivotDependency * (W)(pivotsCluster[c].second[p]);
 
 			// Subtract duplicate dependency from current pivot's cluster vertices
 			for (const auto& v : cluster[c]->vertices())
 			{
-				globalBC[v] -= intraClusterBC[v] * verticesClassCardinality[pivotsCluster[c][p]];
+				globalBC[v] -= intraClusterBC[v] * (W)(pivotsCluster[c].second[p]);
 			}
 		}
 	}

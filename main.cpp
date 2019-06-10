@@ -1,13 +1,16 @@
 #include "popl.hpp"
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <spdlog/sinks/wincolor_sink.h>
+
+#define FASTBC_BRANDES_ENABLE_PIVOT_BORDER
 
 #include <DirectedWeightedGraph.h>
 #include <brandes/DijkstraClusterEvaluator.h>
 #include <brandes/VertexInfoPivotSelector.h>
 #include <brandes/DijkstraSSBrandesBC.h>
 #include <brandes/ClusteredBrandesBC.h>
+#include <brandes/KMeansPivotSelector.h>
+#include <kmeans/PlusPlusKMeans.h>
 #include <louvain/LouvainEvaluator.h>
 
 #include <chrono>
@@ -34,7 +37,7 @@ int main(int argc, char **argv)
 	 */
 	std::string edgeListPath, outBCPath, louvainSeed, loggerLevel;
 	int louvainExecutors;
-	double louvainPrecision;
+	double louvainPrecision, kFrac;
 
 	popl::OptionParser op("Usage: fastbc [ options ] <edge_list_path>");
 	auto ls = op.add<popl::Value<std::string>, popl::Attribute::optional>(
@@ -52,6 +55,10 @@ int main(int argc, char **argv)
 		"Minimum precision value for louvain algorithm",
 		0.01,
 		&louvainPrecision);
+	auto kf = op.add<popl::Value<double>, popl::Attribute::optional>(
+		"k", "kfrac",
+		"Topological classes aggregation factor (0-1)");
+	kf->assign_to(&kFrac);
 	op.add<popl::Value<std::string>, popl::Attribute::optional>(
 		"o", "output",
 		"Output file path",
@@ -139,6 +146,16 @@ int main(int argc, char **argv)
 		}
 	}
 
+	// Check kfrac value range
+	if (kf->is_set())
+	{
+		if (kFrac <= 0.0 || kFrac >= 1.0)
+		{
+			SPDLOG_CRITICAL("Kfrac value must be in range 0-1.");
+			return -1;
+		}
+	}
+
 	/*
 	 *	Program options end
 	 */
@@ -164,20 +181,39 @@ int main(int argc, char **argv)
 	SPDLOG_INFO("Loaded graph contains {} vertices and {} edges", graph->vertices().size(), graph->edges());
 
 
+	/* Louvain community detector */
 	std::shared_ptr<fastbc::louvain::ILouvainEvaluator<FASTBC_V_TYPE, FASTBC_W_TYPE>> louvainEvaluator =
 		std::make_shared<fastbc::louvain::LouvainEvaluator<FASTBC_V_TYPE, FASTBC_W_TYPE>>(
 			seed, louvainPrecision);
 
+	/* Brandes cluster evaluator */
 	std::shared_ptr<fastbc::brandes::IClusterEvaluator<FASTBC_V_TYPE, FASTBC_W_TYPE>> clusterEvaluator =
 		std::make_shared<fastbc::brandes::DijkstraClusterEvaluator<FASTBC_V_TYPE, FASTBC_W_TYPE>>();
 
-	std::shared_ptr<fastbc::brandes::IPivotSelector<FASTBC_V_TYPE, FASTBC_W_TYPE>> pivotSelector =
-		std::make_shared<fastbc::brandes::VertexInfoPivotSelector<FASTBC_V_TYPE, FASTBC_W_TYPE>>();
+	/* Cluster pivot selector */
+	std::shared_ptr<fastbc::brandes::IPivotSelector<FASTBC_V_TYPE, FASTBC_W_TYPE>> pivotSelector;
+	if (kf->is_set())
+	{
+		// Kmeans approximated pivot selector
+		pivotSelector = 
+			std::make_shared<fastbc::brandes::KMeansPivotSelector<FASTBC_V_TYPE, FASTBC_W_TYPE>>(
+				std::shared_ptr<fastbc::brandes::IPivotSelector<FASTBC_V_TYPE, FASTBC_W_TYPE>>(
+					new fastbc::brandes::VertexInfoPivotSelector<FASTBC_V_TYPE, FASTBC_W_TYPE>()),
+				std::shared_ptr<fastbc::kmeans::IKMeans<FASTBC_V_TYPE, FASTBC_W_TYPE>>(
+					new fastbc::kmeans::PlusPlusKMeans<FASTBC_V_TYPE, FASTBC_W_TYPE>()),
+				kFrac);
+	}
+	else
+	{
+		pivotSelector = 
+			std::make_shared<fastbc::brandes::VertexInfoPivotSelector<FASTBC_V_TYPE, FASTBC_W_TYPE>>();
+	}
 
+	/* Single source Brandes */
 	std::shared_ptr<fastbc::brandes::DijkstraSSBrandesBC<FASTBC_V_TYPE, FASTBC_W_TYPE>> singleSourceBC =
 		std::make_shared<fastbc::brandes::DijkstraSSBrandesBC<FASTBC_V_TYPE, FASTBC_W_TYPE>>();
 
-
+	/* Clustered Brandes Betweenness centrality calculator */
 	std::shared_ptr<fastbc::brandes::IBrandesBC<FASTBC_V_TYPE, FASTBC_W_TYPE>> brandesBC =
 		std::make_shared<fastbc::brandes::ClusteredBrandeBC<FASTBC_V_TYPE, FASTBC_W_TYPE>>(
 			louvainEvaluator, clusterEvaluator, singleSourceBC, pivotSelector);

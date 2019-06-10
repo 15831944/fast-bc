@@ -1,9 +1,13 @@
-#ifndef FASTBC_BRANDES_IVERTEXINFO_H
-#define FASTBC_BRANDES_IVERTEXINFO_H
+#ifndef FASTBC_BRANDES_VERTEXINFO_H
+#define FASTBC_BRANDES_VERTEXINFO_H
 
 #include <algorithm>
 #include <cmath>
 #include <vector>
+
+#ifndef FASTBC_BRANDES_VERTEXINFO_PENALTY
+#define FASTBC_BRANDES_VERTEXINFO_PENALTY 1000
+#endif
 
 namespace fastbc {
 	namespace brandes {
@@ -12,6 +16,11 @@ namespace fastbc {
 		class VertexInfo
 		{
 		public:
+			/**
+			 *	@brief Initialize a Vertex info object with borderCount borders info
+			 * 
+			 *	@param borderCount Number of border info to store
+			 */
 			VertexInfo(int borderCount);
 
 			template<typename N, typename E>
@@ -32,8 +41,13 @@ namespace fastbc {
 
 			void normalize();
 
+			int borders() const;
+
 			template<typename N, typename E>
 			W squaredDistance(const VertexInfo<N, E>& other) const;
+
+			template<typename N, typename E>
+			W contributionDistance(const VertexInfo<N, E>& other) const;
 
 			template<typename N, typename E>
 			VertexInfo<V, W>& operator+=(const VertexInfo<N, E>& other);
@@ -166,7 +180,14 @@ void fastbc::brandes::VertexInfo<V, W>::setBorderSPLength(int storeIndex, W leng
 template<typename V, typename W>
 W fastbc::brandes::VertexInfo<V, W>::getBorderSPLength(int storeIndex) const
 {
-	return _borderSPLength[storeIndex];
+	if (storeIndex < _borderCount)
+	{
+		return _borderSPLength[storeIndex];
+	}
+	else
+	{
+		throw std::out_of_range("Given store index is out of range.");
+	}
 }
 
 template<typename V, typename W>
@@ -185,13 +206,22 @@ void fastbc::brandes::VertexInfo<V, W>::setBorderSPCount(int storeIndex, V count
 template<typename V, typename W>
 V fastbc::brandes::VertexInfo<V, W>::getBorderSPCount(int storeIndex) const
 {
-	return _borderSPCount[storeIndex];
+	if (storeIndex < _borderCount)
+	{
+		return _borderSPCount[storeIndex];
+	}
+	else
+	{
+	throw std::out_of_range("Given store index is out of range.");
+	}
 }
 
 template<typename V, typename W>
 W fastbc::brandes::VertexInfo<V, W>::getMinBorderSPLength() const
 {
-	if(_borderSPLength.size() == 0) return 0;
+	// It could be possible to have a sub-grph not connected to external vertices
+	if (!_borderCount) { return 0; }
+
 	return *std::min_element(_borderSPLength.begin(), _borderSPLength.end());
 }
 
@@ -207,6 +237,12 @@ void fastbc::brandes::VertexInfo<V, W>::normalize()
 }
 
 template<typename V, typename W>
+int fastbc::brandes::VertexInfo<V, W>::borders() const
+{
+	return _borderCount;
+}
+
+template<typename V, typename W>
 template<typename N, typename E>
 W fastbc::brandes::VertexInfo<V, W>::squaredDistance(const VertexInfo<N, E>& other) const
 {
@@ -219,6 +255,31 @@ W fastbc::brandes::VertexInfo<V, W>::squaredDistance(const VertexInfo<N, E>& oth
 	}
 
 	return sqDistance;
+}
+
+template<typename V, typename W>
+template<typename N, typename E>
+W fastbc::brandes::VertexInfo<V, W>::contributionDistance(const VertexInfo<N, E>& other) const
+{
+	W cDistance = 0;
+
+	for (int i = 0; i < _borderCount; ++i)
+	{
+		if (_borderSPCount[i] != 0 || other._borderSPCount[i] != 0)
+		{
+			if (_borderSPCount[i] > 0 && other._borderSPCount[i] > 0)
+			{
+				cDistance += std::pow(_borderSPLength[i] - (W)other._borderSPLength[i], 2);
+				cDistance += std::pow(_borderSPCount[i] - (V)other._borderSPCount[i], 2);
+			}
+			else
+			{
+				cDistance += (W)FASTBC_BRANDES_VERTEXINFO_PENALTY;
+			}
+		}
+	}
+
+	return cDistance;
 }
 
 template<typename V, typename W>
@@ -461,15 +522,12 @@ W fastbc::brandes::VertexInfo<V, W>::compare(const VertexInfo<N, E>& other) cons
 {
 	for (int i = 0; i < _borderCount; i++)
 	{
-		if (W cmp = _borderSPLength[i] - other._borderSPLength[i]; cmp != 0)
+		if (W cmp = _borderSPCount[i] - other._borderSPCount[i]; cmp != 0)
 		{
 			return cmp;
 		}
-	}
 
-	for (int i = 0; i < _borderCount; i++)
-	{
-		if (W cmp = _borderSPCount[i] - other._borderSPCount[i]; cmp != 0)
+		if (W cmp = _borderSPLength[i] - other._borderSPLength[i]; cmp != 0)
 		{
 			return cmp;
 		}

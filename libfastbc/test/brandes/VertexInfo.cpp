@@ -359,3 +359,24 @@ TEST_CASE("Vertex info compare operators", "[brandes]")
 		REQUIRE_FALSE(viA >= viB);
 	}
 }
+
+TEST_CASE("Vertex info contribution distance", "[brandes]")
+{
+	VertexInfo<int, double> vi(3);
+	vi.setBorderSPCount(0, 1);
+	vi.setBorderSPLength(0, 10.0);
+	vi.setBorderSPCount(1, 0);
+	vi.setBorderSPLength(1, 0.0);
+	vi.setBorderSPCount(2, 2);
+	vi.setBorderSPLength(2, 6.0);
+
+	VertexInfo<int, double> vib(3);
+	vib.setBorderSPCount(0, 1);
+	vib.setBorderSPLength(0, 10.0);
+	vib.setBorderSPCount(1, 1);
+	vib.setBorderSPLength(1, 5.0);
+	vib.setBorderSPCount(2, 2);
+	vib.setBorderSPLength(2, 6.0);
+
+	REQUIRE(vi.contributionDistance(vib) == FASTBC_BRANDES_VERTEXINFO_PENALTY);
+}

@@ -69,7 +69,7 @@ TEST_CASE("Dijkstra cluster evaluation test", "[brandes]")
 	REQUIRE(globalVertexInfo[3]->getBorderSPLength(1) == 3.0f);
 
 	REQUIRE(globalVertexInfo[4]->getBorderSPCount(0) == 0);
-	REQUIRE(globalVertexInfo[4]->getBorderSPLength(0) == std::numeric_limits<float>::max());
+	REQUIRE(globalVertexInfo[4]->getBorderSPLength(0) == 0);
 	REQUIRE(globalVertexInfo[4]->getBorderSPCount(1) == 1);
 	REQUIRE(globalVertexInfo[4]->getBorderSPLength(1) == 0.0f);
 }
