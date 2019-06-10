@@ -95,7 +95,8 @@ std::vector<V> fastbc::brandes::VertexInfoPivotSelector<V, W>::selectPivots(
 		if (j == classM.size())
 		{
 			SPDLOG_WARN("Topological class contains only border vertices");
-			continue;
+			//Select at least a border as pivot.
+			j = 0;
 		}
 
 		// First eligible pivot node
