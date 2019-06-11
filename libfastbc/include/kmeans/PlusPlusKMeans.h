@@ -15,7 +15,8 @@ namespace fastbc {
 				const std::vector<V>& vertices,
 				const std::vector<V>& weights,
 				const std::vector<std::shared_ptr<brandes::VertexInfo<V, W>>>& vertexInfo,
-				W minVariance = 0) override;
+				W minVariance = 0,
+				size_t maxIteration = 100) override;
 
 		private:
 
@@ -41,7 +42,8 @@ fastbc::kmeans::PlusPlusKMeans<V, W>::computeCentroids(
 	const std::vector<V>& vertices,
 	const std::vector<V>& weights,
 	const std::vector<std::shared_ptr<brandes::VertexInfo<V, W>>>& vertexInfo,
-	W minVariance)
+	W minVariance,
+	size_t maxIteration)
 {
 	// Current centroids vector
 	std::vector<V> newCentroid = _initPlusPlus(k, vertices, vertexInfo);
@@ -49,7 +51,10 @@ fastbc::kmeans::PlusPlusKMeans<V, W>::computeCentroids(
 
 	std::vector<std::vector<V>> clusterVerticesIndex(centroid.size());
 
+	size_t iteration = 0;
+
 	do {
+		++iteration;
 		centroid = newCentroid;
 		for (auto& cvi : clusterVerticesIndex) { cvi.clear(); }
 		
@@ -106,7 +111,9 @@ fastbc::kmeans::PlusPlusKMeans<V, W>::computeCentroids(
 			newCentroid[c] = vertices[nearestV];
 		}
 
-	} while (_centroidVariance(centroid, newCentroid, vertexInfo) > minVariance);
+	// Iterate until no significant change in centroids is detected or max iteration is reached
+	} while (_centroidVariance(centroid, newCentroid, vertexInfo) > minVariance
+		&& iteration <= maxIteration);
 
 
 	std::pair<std::vector<V>, std::vector<V>> centroidWeights = 

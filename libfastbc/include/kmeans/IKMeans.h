@@ -26,6 +26,7 @@ namespace fastbc {
 			 *	@param weights Vertex weights to consider during clusters computation
 			 *	@param vertexInfo Map of vertex indices and related vertex information
 			 *	@param minVariance Minimum subsequent iteration centroids variance to consider
+			 *	@param maxIteration Maximum number of iterations allowed
 			 *	@return std::pair<std::vector<V>, std::vector<V>> Vector of k centroids and related weights
 			 */
 			virtual std::pair<std::vector<V>, std::vector<V>> computeCentroids(
@@ -33,7 +34,8 @@ namespace fastbc {
 				const std::vector<V>& vertices,
 				const std::vector<V>& weights,
 				const std::vector<std::shared_ptr<brandes::VertexInfo<V, W>>>& vertexInfo,
-				W minVariance = 0) = 0;
+				W minVariance = 0,
+				size_t maxIteration = 100) = 0;
 		};
 
 	}

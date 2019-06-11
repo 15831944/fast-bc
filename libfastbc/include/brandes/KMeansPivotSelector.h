@@ -19,7 +19,8 @@ namespace fastbc {
 				std::shared_ptr<IPivotSelector<V, W>> exactPivotSelector,
 				std::shared_ptr<kmeans::IKMeans<V, W>> kmeans,
 				double kFrac,
-				W stopVariance = 0);
+				W stopVariance = 0,
+				size_t maxIteration = 100);
 
 			std::pair<std::vector<V>, std::vector<V>> selectPivots(
 				const std::valarray<W>& globalBC,
@@ -32,6 +33,7 @@ namespace fastbc {
 			std::shared_ptr<kmeans::IKMeans<V, W>> _kmeans;
 			const double _kFrac;
 			const W _stopVariance;
+			const size_t _maxIteration;
 		};
 	}
 }
@@ -41,12 +43,22 @@ fastbc::brandes::KMeansPivotSelector<V, W>::KMeansPivotSelector(
 	std::shared_ptr<IPivotSelector<V, W>> exactPivotSelector,
 	std::shared_ptr<kmeans::IKMeans<V, W>> kmeans,
 	double kFrac,
-	W stopVariance)
-	: _exactPS(exactPivotSelector), _kmeans(kmeans), _kFrac(kFrac), _stopVariance(stopVariance)
+	W stopVariance,
+	size_t maxIteration)
+	: _exactPS(exactPivotSelector), 
+	_kmeans(kmeans), 
+	_kFrac(kFrac), 
+	_stopVariance(stopVariance),
+	_maxIteration(maxIteration)
 {
 	if (_kFrac < 0.0 || _kFrac > 1.0)
 	{
 		throw std::invalid_argument("Given KFrac parameter is out of bounds");
+	}
+
+	if(maxIteration < 100)
+	{
+		SPDLOG_WARN("Given max iteration for kmeans pivot selection is low ({})", _maxIteration);
 	}
 }
 
@@ -66,7 +78,39 @@ fastbc::brandes::KMeansPivotSelector<V, W>::selectPivots(
 	SPDLOG_INFO("Aggregating {} pivots in {} super-classes", 
 		pivotIndexCluster.size(), k);
 
-	return _kmeans->computeCentroids(k, pivotIndexCluster, pivotClassCluster, verticesInfo, _stopVariance);
+	std::pair<std::vector<V>, std::vector<V>> pivotWeight = 
+		_kmeans->computeCentroids(k, pivotIndexCluster, pivotClassCluster, verticesInfo, 
+			_stopVariance, _maxIteration);
+
+#ifndef FASTBC_BRANDES_KMENS_PIVOT_ALLOW_DUPLICATED
+	std::set<V> uniquePivots;
+	size_t duplicates = 0;
+	auto pIT = pivotWeight.first.begin();
+	auto wIT = pivotWeight.second.begin();
+	while(pIT != pivotWeight.first.end())
+	{
+		if(uniquePivots.insert(*pIT).second)
+		{
+			++pIT;
+			++wIT;
+		}
+		else
+		{
+			pIT = pivotWeight.first.erase(pIT);
+			wIT = pivotWeight.second.erase(wIT);
+			++duplicates;
+		}
+	}
+	
+	if(duplicates)
+	{
+		SPDLOG_ERROR("Removed {} duplicated pivots from current cluster", 
+			duplicates);
+	}
+#endif
+	
+
+	return pivotWeight;
 }
 
 #endif
