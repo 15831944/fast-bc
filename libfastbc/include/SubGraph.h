@@ -26,7 +26,7 @@ namespace fastbc {
 		 *	@param referenceGraph Full graph where the sub-graph is computed
 		 */
 		SubGraph(
-			const std::set<V>& subGraphVertices, 
+			const std::vector<V>& subGraphVertices, 
 			std::shared_ptr<const IGraph<V, W>> referenceGraph);
 
 		W edge(V src, V dest) const override;
@@ -35,7 +35,7 @@ namespace fastbc {
 
 		const std::map<V, W>& backwardStar(V dest) const override;
 
-		const std::set<V>& vertices() const override;
+		const std::vector<V>& vertices() const override;
 
 		V edges() const override;
 
@@ -47,7 +47,7 @@ namespace fastbc {
 
 	private:
 		const std::shared_ptr<const IGraph<V, W>> _referenceGraph;
-		const std::set<V> _vertices;
+		const std::vector<V> _vertices;
 		V _edges;
 		std::map<V, std::map<V, W>> _borderDestWeight;
 		std::map<V, std::map<V, W>> _borderSrcWeight;
@@ -58,14 +58,19 @@ namespace fastbc {
 
 template<typename V, typename W>
 fastbc::SubGraph<V, W>::SubGraph(
-	const std::set<V>& subGraphVertices, 
+	const std::vector<V>& subGraphVertices, 
 	std::shared_ptr<const IGraph<V, W>> referenceGraph)
 	: _referenceGraph(referenceGraph),
 	_vertices(subGraphVertices),
 	_edges(0)
 {
-	for (auto& v : _vertices)
+	// Order sub-graph vertices to speed-up border vertices computation
+	std::set orderedVertices(_vertices.begin(), _vertices.end());
+
+	for (size_t vIndex = 0; vIndex < _vertices.size(); ++vIndex)
 	{
+		const V& v = _vertices[vIndex];
+
 		// Check vertex forward star for edges terminating outside the graph
 		const auto& fs = _referenceGraph->forwardStar(v);
 
@@ -76,7 +81,7 @@ fastbc::SubGraph<V, W>::SubGraph(
 		for (auto& e : fs)
 		{
 			// When a vertex has an edge outside the sub-graph set it as border and store outgoing edge
-			if (auto dest = _vertices.find(e.first); dest == _vertices.end())
+			if (auto dest = orderedVertices.find(e.first); dest == orderedVertices.end())
 			{
 				isBorder = true;
 				outEdges.push_back(e.first);
@@ -108,7 +113,7 @@ fastbc::SubGraph<V, W>::SubGraph(
 		const auto& bs = _referenceGraph->backwardStar(v);
 		for (auto& e : bs)
 		{
-			if (auto src = _vertices.find(e.first); src == _vertices.end())
+			if (auto src = orderedVertices.find(e.first); src == orderedVertices.end())
 			{
 				isBorder = true;
 				outEdges.push_back(e.first);
@@ -132,9 +137,10 @@ fastbc::SubGraph<V, W>::SubGraph(
 		// If a vertex runs out of edges, the sub-graph is not consistent
 		if (isBorder && !connections && !(_vertices.size() == 1))
 		{
-			SPDLOG_WARN("Vertex {} is unconnected in its cluster", v);
+			SPDLOG_TRACE("Vertex {} is unconnected in its cluster", v);
 
 #ifdef FASTBC_SUBGRAPH_CONNECTED_ONLY
+			SPDLOG_CRITICAL("Vertex {} is unconnected in its cluster", v);
 			throw std::invalid_argument("Given subgraph has unconnected vertices");
 #endif
 		}
@@ -183,7 +189,7 @@ const std::map<V, W>& fastbc::SubGraph<V, W>::backwardStar(V dest) const
 }
 
 template<typename V, typename W>
-const std::set<V>& fastbc::SubGraph<V, W>::vertices() const
+const std::vector<V>& fastbc::SubGraph<V, W>::vertices() const
 {
 	return _vertices;
 }

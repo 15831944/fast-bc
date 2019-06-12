@@ -11,7 +11,6 @@
 
 #include <memory>
 #include <spdlog/spdlog.h>
-#include <valarray>
 #include <vector>
 
 namespace fastbc {
@@ -27,7 +26,7 @@ namespace fastbc {
 				std::shared_ptr<ISSBrandesBC<V, W>> ssb,
 				std::shared_ptr<IPivotSelector<V, W>> ps);
 
-			std::valarray<W> computeBC(const std::shared_ptr<const IGraph<V, W>> graph) override;
+			std::vector<W> computeBC(const std::shared_ptr<const IGraph<V, W>> graph) override;
 
 		private:
 			std::shared_ptr<louvain::ILouvainEvaluator<V, W>> _le;
@@ -50,11 +49,11 @@ fastbc::brandes::ClusteredBrandeBC<V, W>::ClusteredBrandeBC(
 }
 
 template<typename V, typename W>
-std::valarray<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
+std::vector<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 	const std::shared_ptr<const fastbc::IGraph<V, W>> graph)
 {
 	// Global betweenness centrality storage
-	std::valarray<W> globalBC((W)0, graph->vertices().size());
+	std::vector<W> globalBC(graph->vertices().size(), (W)0);
 
 	// Vertices topological information about their own cluster border vertices
 	std::vector<std::shared_ptr<VertexInfo<V, W>>> verticesInfo(graph->vertices().size(), nullptr);
@@ -66,8 +65,8 @@ std::valarray<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 	std::vector<std::pair<std::vector<V>, std::vector<V>>> pivotsCluster;
 
 	// Compute graph partition using Louvain communities detection algorithm
-	SPDLOG_INFO("Computing clusters with Louvain algorithm");
-	std::vector<std::shared_ptr<louvain::ICommunity<V, W>>> communities = 
+	SPDLOG_INFO("Computing clusters with Louvain algorithm...");
+	std::vector<std::vector<V>> communities = 
 		_le->evaluateGraph(std::static_pointer_cast<const IDegreeGraph<V, W>>(graph));
 
 	SPDLOG_INFO("Graph partitioned in {} clusters", communities.size());
@@ -76,53 +75,67 @@ std::valarray<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 
 	// For each detected community compute related sub-graph, evaluate it for internal BC
 	// and perform topological analysis to get pivots and vertices class cardinality
+	SPDLOG_INFO("Evaluating intra cluster BC...");
+	#pragma omp parallel for
 	for (int i = 0; i < cluster.size(); i++)
 	{
-		cluster[i] = std::make_shared<SubGraph<V, W>>(communities[i]->all(), graph);
+		cluster[i] = std::make_shared<SubGraph<V, W>>(communities[i], graph);
 
-		SPDLOG_INFO("Evaluating BC on cluster {}: {} vertices ({} borders), {} edges", 
+		SPDLOG_DEBUG("Evaluating BC on cluster {}: {} vertices ({} borders), {} edges", 
 			i, cluster[i]->vertices().size(), cluster[i]->borders().size(), cluster[i]->edges());
-#if SPDLOG_ACTIVE_LEVEL <= SPDLOG_LEVEL_ERROR
+		
 		if (cluster[i]->borders().empty())
 		{
-			SPDLOG_ERROR("Cluster {} is disconnected from the rest of the graph, please check your input!");
+			SPDLOG_ERROR("Cluster {} is disconnected from the rest of the graph, please check your input!", i);
 		}
-#endif
+
 		_ce->evaluateCluster(globalBC, verticesInfo, cluster[i]);
 
 		pivotsCluster[i] = _ps->selectPivots(
 			globalBC, verticesInfo, 
 			cluster[i]->vertices(), cluster[i]->borders());
 
-		SPDLOG_INFO("Selected {} vertices as pivots in cluster {}", pivotsCluster[i].first.size(), i);
+		SPDLOG_DEBUG("Selected {} vertices as pivots in cluster {}", pivotsCluster[i].first.size(), i);
 	}
 
-	std::valarray<W> intraClusterBC(globalBC);
+	std::vector<W> intraClusterBC(globalBC);
 	
 #if SPDLOG_ACTIVE_LEVEL <= SPDLOG_LEVEL_INFO
 	size_t pivotCount = 0;
-	for (const auto& pc : pivotsCluster)
+	#pragma omp simd reduction(+:pivotCount)
+	for (size_t c = 0; c < pivotsCluster.size(); ++c)
 	{
-		pivotCount += pc.first.size();
+		pivotCount += pivotsCluster[c].first.size();
 	}
-	SPDLOG_INFO("Computing global BC from {} pivots", pivotCount);
+	SPDLOG_INFO("Computing global BC from {} pivots...", pivotCount);
 #endif
 
 	// Compute global dependecy pivot contribution
+	W* _globalBC = globalBC.data();
+	size_t _globalBCsize = globalBC.size();
 	for (size_t c = 0; c < cluster.size(); ++c)
 	{
+		#pragma omp parallel for reduction(+:_globalBC[:_globalBCsize])
 		for (size_t p = 0; p < pivotsCluster[c].first.size(); ++p)
 		{
-			std::valarray<W> pivotDependency = 
+			SPDLOG_DEBUG("Computing SSSP from pivot vertex {}", pivotsCluster[c].first[p]);
+			std::vector<W> pivotDependency = 
 				_ssb->singleSourceBrandes(pivotsCluster[c].first[p], graph);
 
 			// Sum pivot dependecy to all vertices
-			globalBC += pivotDependency * (W)(pivotsCluster[c].second[p]);
+			#pragma omp simd
+			for(size_t v = 0; v < _globalBCsize; ++v)
+			{
+				_globalBC[v] += pivotDependency[v] * (W)(pivotsCluster[c].second[p]);
+			}
 
 			// Subtract duplicate dependency from current pivot's cluster vertices
-			for (const auto& v : cluster[c]->vertices())
+			#pragma omp simd
+			for (size_t vIndex = 0; vIndex < cluster[c]->vertices().size(); ++vIndex)
 			{
-				globalBC[v] -= intraClusterBC[v] * (W)(pivotsCluster[c].second[p]);
+				const V& v = cluster[c]->vertices()[vIndex];
+
+				_globalBC[v] -= intraClusterBC[v] * (W)(pivotsCluster[c].second[p]);
 			}
 		}
 	}

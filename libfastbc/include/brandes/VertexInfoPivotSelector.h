@@ -16,9 +16,9 @@ namespace fastbc {
 		public:
 
 			std::pair<std::vector<V>, std::vector<V>> selectPivots(
-				const std::valarray<W>& globalBC,
+				const std::vector<W>& globalBC,
 				const std::vector<std::shared_ptr<VertexInfo<V, W>>>& verticesInfo,
-				const std::set<V>& vertices,
+				const std::vector<V>& vertices,
 				const std::set<V>& borders) override;
 		};
 
@@ -27,9 +27,9 @@ namespace fastbc {
 
 template<typename V, typename W>
 std::pair<std::vector<V>, std::vector<V>> fastbc::brandes::VertexInfoPivotSelector<V, W>::selectPivots(
-	const std::valarray<W>& globalBC,
+	const std::vector<W>& globalBC,
 	const std::vector<std::shared_ptr<VertexInfo<V, W>>>& verticesInfo,
-	const std::set<V>& vertices,
+	const std::vector<V>& vertices,
 	const std::set<V>& borders)
 {
 	// Vertex info class representative
@@ -68,7 +68,7 @@ std::pair<std::vector<V>, std::vector<V>> fastbc::brandes::VertexInfoPivotSelect
 		}
 	}
 
-	SPDLOG_INFO("Found {} topological classes in current cluster", classes.size());
+	SPDLOG_TRACE("Found {} topological classes in current cluster", classes.size());
 
 	// Classes pivot and cardinality
 	std::pair<std::vector<V>, std::vector<V>> pivot;
@@ -95,11 +95,11 @@ std::pair<std::vector<V>, std::vector<V>> fastbc::brandes::VertexInfoPivotSelect
 		{
 			
 #ifdef FASTBC_BRANDES_ENABLE_PIVOT_BORDER
-			SPDLOG_WARN("Topological class contains only border vertices: selecting first as pivot");
+			SPDLOG_TRACE("Topological class contains only border vertices: selecting first as pivot");
 			pivot.first.push_back(classM[0]);
 			pivot.second.push_back(classM.size());
 #else
-			SPDLOG_WARN("Topological class contains only border vertices: no pivot was selected");
+			SPDLOG_TRACE("Topological class contains only border vertices: no pivot was selected");
 #endif
 			continue;
 		}

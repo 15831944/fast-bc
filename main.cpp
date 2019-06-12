@@ -30,6 +30,9 @@
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 #endif
 
+#define FASTBC_SPDLOG_FORMAT_DEBUG	"[%H:%M:%S.%f] %^[%=9l]%$ [%=7t] [%!]\n\t%v"
+#define FASTBC_SPDLOG_FORMAT		"%^[%=9l]%$ %v"
+
 int main(int argc, char **argv)
 {
 	/*
@@ -93,8 +96,16 @@ int main(int argc, char **argv)
 
 	// Setup logger
 	spdlog::set_default_logger(spdlog::stdout_color_mt("fastbc"));
-	spdlog::set_pattern("[%H:%M:%S.%f] %^[%=9l]%$ [%=7t] [%!]\n\t%v");
-	spdlog::set_level(spdlog::level::from_str(loggerLevel));
+	auto log_level = spdlog::level::from_str(loggerLevel);
+	if(log_level <= spdlog::level::debug)
+	{
+		spdlog::set_pattern(FASTBC_SPDLOG_FORMAT_DEBUG);
+	}
+	else
+	{
+		spdlog::set_pattern(FASTBC_SPDLOG_FORMAT);
+	}
+	spdlog::set_level(log_level);
 
 	// Check bc output file
 	std::ifstream outFileTest(outBCPath, std::ifstream::in);
@@ -225,7 +236,7 @@ int main(int argc, char **argv)
 
 	auto startTime = std::chrono::high_resolution_clock::now();
 
-	std::valarray<FASTBC_W_TYPE> bc = brandesBC->computeBC(graph);
+	std::vector<FASTBC_W_TYPE> bc = brandesBC->computeBC(graph);
 
 	auto totalTime = std::chrono::high_resolution_clock::now() - startTime;
 	auto milliTime = std::chrono::duration_cast<std::chrono::milliseconds>(totalTime).count();

@@ -4,7 +4,7 @@
 #include <IGraph.h>
 
 #include <memory>
-#include <valarray>
+#include <vector>
 
 namespace fastbc {
 	namespace brandes {
@@ -14,7 +14,7 @@ namespace fastbc {
 		{
 		public:
 
-			virtual std::valarray<W> computeBC(const std::shared_ptr<const IGraph<V, W>> graph) = 0;
+			virtual std::vector<W> computeBC(const std::shared_ptr<const IGraph<V, W>> graph) = 0;
 		};
 
 	}

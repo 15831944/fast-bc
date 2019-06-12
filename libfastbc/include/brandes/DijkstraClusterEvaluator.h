@@ -19,7 +19,7 @@ namespace fastbc {
 		public:
 
 			void evaluateCluster(
-				std::valarray<W>& clusterBC,
+				std::vector<W>& clusterBC,
 				std::vector<std::shared_ptr<VertexInfo<V, W>>>& globalVI,
 				std::shared_ptr<const ISubGraph<V, W>> cluster) override;
 
@@ -51,17 +51,23 @@ namespace fastbc {
 
 template<typename V, typename W>
 void fastbc::brandes::DijkstraClusterEvaluator<V, W>::evaluateCluster(
-	std::valarray<W>& clusterBC,
+	std::vector<W>& clusterBC,
 	std::vector<std::shared_ptr<VertexInfo<V, W>>>& globalVI,
 	std::shared_ptr<const ISubGraph<V, W>> cluster)
 {
+	W* _clusterBC = clusterBC.data();
+	size_t _clusterBCsize = clusterBC.size();
+
 	// Partial dependency vertices map
 	std::map<V, W> delta;
 	for (const auto& v : cluster->vertices()) { delta[v] = 0; }
 
 	// Compute SP from each cluster vertex
-	for (const auto& src : cluster->vertices())
+	#pragma omp parallel for private(delta) reduction(+:_clusterBC[:_clusterBCsize])
+	for (size_t srcIndex = 0; srcIndex < cluster->vertices().size(); ++srcIndex)
 	{
+		const V& src = cluster->vertices()[srcIndex];
+
 		// Reset partial dependency structure before starting
 		for (auto& vw : delta) { vw.second = 0; }
 
@@ -86,7 +92,7 @@ void fastbc::brandes::DijkstraClusterEvaluator<V, W>::evaluateCluster(
 
 			if (w != src)
 			{
-				clusterBC[w] += delta[w];
+				_clusterBC[w] += delta[w];
 			}
 		}
 	}

@@ -23,7 +23,7 @@ TEST_CASE("Single source Brandes BC", "[brandes]")
 	std::shared_ptr<ISSBrandesBC<int, float>> ssBC =
 		std::make_shared<DijkstraSSBrandesBC<int, float>>();
 
-	std::valarray<float> globalBC = ssBC->singleSourceBrandes(0, fullGraph);
+	std::vector<float> globalBC = ssBC->singleSourceBrandes(0, fullGraph);
 
 	REQUIRE(globalBC.size() == fullGraph->vertices().size());
 }

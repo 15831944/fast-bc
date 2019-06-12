@@ -5,7 +5,6 @@
 
 #include <memory>
 #include <set>
-#include <valarray>
 #include <vector>
 #include <utility>
 
@@ -33,9 +32,9 @@ namespace fastbc {
 			 *	@return std::pair<std::vector<V>, std::vector<V>> Selected pivot vertex indices and related class cardinality
 			 */
 			virtual std::pair<std::vector<V>, std::vector<V>> selectPivots(
-				const std::valarray<W>& globalBC, 
+				const std::vector<W>& globalBC, 
 				const std::vector<std::shared_ptr<VertexInfo<V, W>>>& verticesInfo,
-				const std::set<V>& vertices,
+				const std::vector<V>& vertices,
 				const std::set<V>& borders) = 0;
 		};
 

@@ -5,7 +5,6 @@
 #include "VertexInfo.h"
 
 #include <memory>
-#include <valarray>
 #include <vector>
 
 namespace fastbc {
@@ -31,7 +30,7 @@ namespace fastbc {
 			 *	@param cluster Sub-graph to apply computation to
 			 */
 			virtual void evaluateCluster(
-				std::valarray<W>& clusterBC,
+				std::vector<W>& clusterBC,
 				std::vector<std::shared_ptr<VertexInfo<V, W>>>& globalVI,
 				std::shared_ptr<const ISubGraph<V,W>> cluster) = 0;
 		};

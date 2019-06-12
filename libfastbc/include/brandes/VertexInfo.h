@@ -41,6 +41,8 @@ namespace fastbc {
 
 			void normalize();
 
+			void reset();
+
 			int borders() const;
 
 			template<typename N, typename E>
@@ -137,6 +139,7 @@ fastbc::brandes::VertexInfo<V, W>::VertexInfo(const VertexInfo<N, E>& copy)
 	_borderSPLength(_borderCount),
 	_borderSPCount(_borderCount)
 {
+	#pragma omp simd
 	for (int i = 0; i < _borderCount; ++i)
 	{
 		_borderSPLength[i] = (W)copy._borderSPLength[i];
@@ -155,6 +158,7 @@ fastbc::brandes::VertexInfo<V, W>& fastbc::brandes::VertexInfo<V, W>::operator=(
 		_borderSPCount.resize(_borderCount);
 	}
 
+	#pragma omp simd
 	for (int i = 0; i < _borderCount; ++i)
 	{
 		_borderSPLength[i] = (W)other._borderSPLength[i];
@@ -230,10 +234,18 @@ void fastbc::brandes::VertexInfo<V, W>::normalize()
 {
 	W min = getMinBorderSPLength();
 
+	#pragma omp simd
 	for (int i = 0; i < _borderCount; ++i)
 	{
 		_borderSPLength[i] -= min;
 	}
+}
+
+template<typename V, typename W>
+void fastbc::brandes::VertexInfo<V, W>::reset()
+{
+	_borderSPLength.assign(_borderCount, (W)0);
+	_borderSPCount.assign(_borderCount, (V)0);
 }
 
 template<typename V, typename W>
@@ -248,6 +260,7 @@ W fastbc::brandes::VertexInfo<V, W>::squaredDistance(const VertexInfo<N, E>& oth
 {
 	W sqDistance = 0;
 
+	#pragma omp simd reduction(+:sqDistance)
 	for (int i = 0; i < _borderCount; ++i)
 	{
 		sqDistance += std::pow(_borderSPLength[i] - (W)other._borderSPLength[i], 2);
@@ -263,6 +276,7 @@ W fastbc::brandes::VertexInfo<V, W>::contributionDistance(const VertexInfo<N, E>
 {
 	W cDistance = 0;
 
+	#pragma omp simd reduction(+:cDistance)
 	for (int i = 0; i < _borderCount; ++i)
 	{
 		if (_borderSPCount[i] != 0 || other._borderSPCount[i] != 0)
@@ -287,6 +301,7 @@ template<typename N, typename E>
 fastbc::brandes::VertexInfo<V, W>&
 fastbc::brandes::VertexInfo<V, W>::operator+=(const VertexInfo<N, E>& other)
 {
+	#pragma omp simd
 	for (int i = 0; i < _borderCount; ++i)
 	{
 		_borderSPLength[i] += other._borderSPLength[i];
@@ -301,6 +316,7 @@ template<typename N, typename E>
 fastbc::brandes::VertexInfo<V, W>& 
 fastbc::brandes::VertexInfo<V, W>::operator-=(const VertexInfo<N, E>& other)
 {
+	#pragma omp simd
 	for (int i = 0; i < _borderCount; ++i)
 	{
 		_borderSPLength[i] -= other._borderSPLength[i];
@@ -315,6 +331,7 @@ template<typename N, typename E>
 fastbc::brandes::VertexInfo<V, W>&
 fastbc::brandes::VertexInfo<V, W>::operator*=(const VertexInfo<N, E>& other)
 {
+	#pragma omp simd
 	for (int i = 0; i < _borderCount; ++i)
 	{
 		_borderSPLength[i] *= other._borderSPLength[i];
@@ -329,6 +346,7 @@ template<typename N, typename E>
 fastbc::brandes::VertexInfo<V, W>&
 fastbc::brandes::VertexInfo<V, W>::operator/=(const VertexInfo<N, E>& other)
 {
+	#pragma omp simd
 	for (int i = 0; i < _borderCount; ++i)
 	{
 		_borderSPLength[i] /= other._borderSPLength[i];
@@ -383,6 +401,7 @@ template<typename T>
 fastbc::brandes::VertexInfo<V, W>&
 fastbc::brandes::VertexInfo<V, W>::operator+=(T num)
 {
+	#pragma omp simd
 	for (int i = 0; i < _borderCount; ++i)
 	{
 		_borderSPLength[i] += num;
@@ -397,6 +416,7 @@ template<typename T>
 fastbc::brandes::VertexInfo<V, W>&
 fastbc::brandes::VertexInfo<V, W>::operator-=(T num)
 {
+	#pragma omp simd
 	for (int i = 0; i < _borderCount; ++i)
 	{
 		_borderSPLength[i] -= num;
@@ -411,6 +431,7 @@ template<typename T>
 fastbc::brandes::VertexInfo<V, W>&
 fastbc::brandes::VertexInfo<V, W>::operator*=(T num)
 {
+	#pragma omp simd
 	for (V i = 0; i < _borderCount; ++i)
 	{
 		_borderSPLength[i] *= num;
@@ -425,6 +446,7 @@ template<typename T>
 fastbc::brandes::VertexInfo<V, W>&
 fastbc::brandes::VertexInfo<V, W>::operator/=(T num)
 {
+	#pragma omp simd
 	for (int i = 0; i < _borderCount; ++i)
 	{
 		_borderSPLength[i] /= num;

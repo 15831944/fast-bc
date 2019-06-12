@@ -23,9 +23,9 @@ namespace fastbc {
 				size_t maxIteration = 100);
 
 			std::pair<std::vector<V>, std::vector<V>> selectPivots(
-				const std::valarray<W>& globalBC,
+				const std::vector<W>& globalBC,
 				const std::vector<std::shared_ptr<VertexInfo<V, W>>>& verticesInfo,
-				const std::set<V>& vertices,
+				const std::vector<V>& vertices,
 				const std::set<V>& borders) override;
 
 		private:
@@ -65,9 +65,9 @@ fastbc::brandes::KMeansPivotSelector<V, W>::KMeansPivotSelector(
 template<typename V, typename W>
 std::pair<std::vector<V>, std::vector<V>> 
 fastbc::brandes::KMeansPivotSelector<V, W>::selectPivots(
-	const std::valarray<W>& globalBC,
+	const std::vector<W>& globalBC,
 	const std::vector<std::shared_ptr<VertexInfo<V, W>>>& verticesInfo,
-	const std::set<V>& vertices,
+	const std::vector<V>& vertices,
 	const std::set<V>& borders)
 {
 	const auto[pivotIndexCluster, pivotClassCluster] = 
@@ -75,7 +75,7 @@ fastbc::brandes::KMeansPivotSelector<V, W>::selectPivots(
 
 	int k = std::max((int)(pivotIndexCluster.size() * _kFrac), 1);
 
-	SPDLOG_INFO("Aggregating {} pivots in {} super-classes", 
+	SPDLOG_TRACE("Aggregating {} pivots in {} super-classes", 
 		pivotIndexCluster.size(), k);
 
 	std::pair<std::vector<V>, std::vector<V>> pivotWeight = 
@@ -104,7 +104,7 @@ fastbc::brandes::KMeansPivotSelector<V, W>::selectPivots(
 	
 	if(duplicates)
 	{
-		SPDLOG_ERROR("Removed {} duplicated pivots from current cluster", 
+		SPDLOG_TRACE("Removed {} duplicated pivots from current cluster", 
 			duplicates);
 	}
 #endif

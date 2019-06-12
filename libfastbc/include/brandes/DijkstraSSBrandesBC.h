@@ -16,7 +16,7 @@ namespace fastbc {
 		class DijkstraSSBrandesBC : public ISSBrandesBC<V, W>
 		{
 		public:
-			std::valarray<W> singleSourceBrandes(
+			std::vector<W> singleSourceBrandes(
 				V source,
 				std::shared_ptr<const IGraph<V, W>> graph) override;
 
@@ -45,7 +45,7 @@ namespace fastbc {
 }
 
 template<typename V, typename W>
-std::valarray<W> fastbc::brandes::DijkstraSSBrandesBC<V, W>::singleSourceBrandes(
+std::vector<W> fastbc::brandes::DijkstraSSBrandesBC<V, W>::singleSourceBrandes(
 	V source,
 	std::shared_ptr<const IGraph<V, W>> graph)
 {
@@ -57,7 +57,7 @@ std::valarray<W> fastbc::brandes::DijkstraSSBrandesBC<V, W>::singleSourceBrandes
 	// Partial vertices dependency map
 	std::vector<W> delta(graph->vertices().size(), 0);
 
-	std::valarray<W> ssBC((W)0, graph->vertices().size());
+	std::vector<W> ssBC(graph->vertices().size(), (W)0);
 
 	// Backward visit of each vertex from dijkstra iteration 
 	while (!visitStack.empty())
@@ -66,7 +66,7 @@ std::valarray<W> fastbc::brandes::DijkstraSSBrandesBC<V, W>::singleSourceBrandes
 		visitStack.pop();
 
 		// Compute each vertex dependency for current src
-		for (auto& v : backtrackInfo[w].spPred)
+		for (const auto& v : backtrackInfo[w].spPred)
 		{
 			W c = backtrackInfo[v].sigma / backtrackInfo[w].sigma * (1.0 + delta[w]);
 

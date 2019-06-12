@@ -13,7 +13,7 @@ using namespace fastbc::brandes;
 
 TEST_CASE("Pivot selection", "[brandes]")
 {
-	std::valarray<double> globalBC = { 1,2,2,1.5,1,3 };
+	std::vector<double> globalBC = { 1,2,2,1.5,1,3 };
 	std::vector<std::shared_ptr<VertexInfo<int, double>>> verticesInfo(globalBC.size());
 	for (int i = 0; i < verticesInfo.size(); ++i)
 	{
@@ -54,7 +54,7 @@ TEST_CASE("Pivot selection", "[brandes]")
 	verticesInfo[4]->setBorderSPCount(1, 1);
 	verticesInfo[4]->setBorderSPCount(2, 3);
 
-	std::set<int> vertices = { 0,1,2,3,4 };
+	std::vector<int> vertices = { 0,1,2,3,4 };
 	std::set<int> borders = {};
 
 	VertexInfoPivotSelector<int, double> ps;

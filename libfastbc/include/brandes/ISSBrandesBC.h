@@ -4,7 +4,7 @@
 #include <IGraph.h>
 
 #include <memory>
-#include <valarray>
+#include <vector>
 
 namespace fastbc {
 	namespace brandes {
@@ -21,9 +21,9 @@ namespace fastbc {
 			 *
 			 *	@param source Source vertex
 			 *	@param graph Full graph object
-			 *	@return std::valarray<W> Partial betweenness centrality value for each graph vertex
+			 *	@return std::vector<W> Partial betweenness centrality value for each graph vertex
 			 */
-			virtual std::valarray<W> singleSourceBrandes(
+			virtual std::vector<W> singleSourceBrandes(
 				V source, 
 				std::shared_ptr<const IGraph<V, W>> graph) = 0;
 		};

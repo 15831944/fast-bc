@@ -4,12 +4,10 @@
 #include <louvain/ILouvainEvaluator.h>
 #include <louvain/LouvainGraph.h>
 #include <louvain/Partition.h>
-#include <louvain/Community.h>
 
 #include <memory>
 #include <random>
 #include <spdlog/spdlog.h>
-#include <omp.h>
 
 namespace fastbc {
 	namespace louvain {
@@ -19,7 +17,7 @@ namespace fastbc {
 		{
 	 
 		private:
-			typedef std::vector<std::shared_ptr<ICommunity<V,W>>> Result;
+			typedef std::vector<std::vector<V>> Result;
 			typedef std::shared_ptr<const IDegreeGraph<V,W>> Graph;
 
 			double _precision;	
@@ -52,16 +50,20 @@ namespace fastbc {
 				Result r;
 
 				int max = 0;
-				for(int i=0; i<n2c.size(); i++)
+				for(size_t i=0; i<n2c.size(); i++)
+				{
 					if(n2c[i] > max)
+					{
 						max = n2c[i];
+					}
+				}
 
 				r.resize(max + 1);
-				for(int i=0; i<r.size(); i++)
-					r[i] = std::make_shared<Community<V, W>>(g);
 
-				for(int i=0; i<n2c.size(); i++)
-					r[n2c[i]]->add(i);
+				for(size_t i=0; i<n2c.size(); i++)
+				{
+					r[n2c[i]].push_back(i);
+				}
 
 				return r;
 			}
@@ -94,7 +96,7 @@ namespace fastbc {
 			    int level=0;
 
 			    do {
-					SPDLOG_INFO("Level: {}\n\tNetwork size: {} vertices, {} edges, {} weight",
+					SPDLOG_DEBUG("Level: {}\n\tNetwork size: {} vertices, {} edges, {} weight",
 						level, g.nb_nodes, g.nb_links, g.total_weight);
 
 			        #pragma omp parallel for
@@ -115,14 +117,14 @@ namespace fastbc {
 			        for(int i=0; i<_parallelism; i++)
 			        	p[i] = Partition<V, W> (g, _precision);
 
-					SPDLOG_INFO("Modularity increased from {} to {}", mod, new_mod);
+					SPDLOG_DEBUG("Modularity increased from {} to {}", mod, new_mod);
 
 			        mod = new_mod;
 					
 					level++;
 			    } while(improvement);
 
-				SPDLOG_INFO("Final modularity {}", new_mod);
+				SPDLOG_DEBUG("Final modularity {}", new_mod);
 
 				return build_result(n2c, graph);
 			}

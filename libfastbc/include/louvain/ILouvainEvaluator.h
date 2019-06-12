@@ -2,7 +2,6 @@
 #define FASTBC_LOUVAIN_ILOUVAINEVALUATOR_H
 
 #include <IDegreeGraph.h>
-#include <louvain/ICommunity.h>
 #include <louvain/Partition.h>
 
 namespace fastbc {
@@ -17,9 +16,9 @@ namespace fastbc {
 			 *	@brief Evaluate given graph to create vertices communities using Louvain algorithm
 			 *
 			 *	@param graph Graph to evaluate
-			 *	@return std::vector<std::shared_ptr<ICommunity<V,W>>> Vertices communities computed from given graph
+			 *	@return std::vector<std::vector<V>> Vertices communities computed from given graph
 			 */				
-			virtual std::vector<std::shared_ptr<ICommunity<V,W>>> evaluateGraph(std::shared_ptr<const IDegreeGraph<V,W>> graph) = 0;
+			virtual std::vector<std::vector<V>> evaluateGraph(std::shared_ptr<const IDegreeGraph<V,W>> graph) = 0;
 		};
 
 	}

@@ -24,12 +24,12 @@ TEST_CASE("Dijkstra cluster evaluation test", "[brandes]")
 		std::make_shared<fastbc::DirectedWeightedGraph<int, float>>(dwgText);
 
 	std::shared_ptr<fastbc::ISubGraph<int, float>> subGraph =
-		std::make_shared<fastbc::SubGraph<int, float>>(std::set<int>({ 0,1,2,3,4 }), fullGraph);
+		std::make_shared<fastbc::SubGraph<int, float>>(std::vector<int>({ 0,1,2,3,4 }), fullGraph);
 
 	std::shared_ptr<IClusterEvaluator<int, float>> ce = 
 		std::make_shared<DijkstraClusterEvaluator<int, float>>();
 
-	std::valarray<float> globalBC((float)0.0, fullGraph->vertices().size());
+	std::vector<float> globalBC(fullGraph->vertices().size(), 0.0f);
 	std::vector<std::shared_ptr<VertexInfo<int, float>>> globalVertexInfo(fullGraph->vertices().size(), nullptr);
 
 	ce->evaluateCluster(globalBC, globalVertexInfo, subGraph);

@@ -30,6 +30,38 @@ namespace fastbc {
 				const std::vector<V>& newCentroid,
 				const std::vector<std::shared_ptr<brandes::VertexInfo<V, W>>>& vertexInfo);
 
+			struct InfoCluster { 
+				brandes::VertexInfo<W, W> centroidInfo;
+				std::vector<V> vIndices;
+
+				InfoCluster(int borderCount) : centroidInfo(borderCount) {}
+
+				InfoCluster& operator+=(const InfoCluster& other)
+				{
+					centroidInfo += other.centroidInfo;
+					vIndices.insert(vIndices.end(), other.vIndices.begin(), other.vIndices.end());
+					return *this;
+				}
+
+				void reset()
+				{
+					centroidInfo.reset();
+					vIndices.clear();
+				}
+			};
+			#pragma omp declare reduction(+: InfoCluster: omp_out += omp_in) \
+				initializer(omp_priv = InfoCluster(omp_orig.centroidInfo.borders()))
+
+			struct VertexDistance { 
+				V vertex; 
+				W distance; 
+
+				VertexDistance(V v, W d) : vertex(v), distance(d) {}
+			};
+			#pragma omp declare reduction(min: VertexDistance: \
+				omp_out = omp_out.distance < omp_in.distance ? omp_out : omp_in) \
+				initializer(omp_priv = VertexDistance(omp_orig.vertex, omp_orig.distance))
+
 		};
 
 	}
@@ -49,66 +81,69 @@ fastbc::kmeans::PlusPlusKMeans<V, W>::computeCentroids(
 	std::vector<V> newCentroid = _initPlusPlus(k, vertices, vertexInfo);
 	std::vector<V> centroid(newCentroid.size());
 
-	std::vector<std::vector<V>> clusterVerticesIndex(centroid.size());
+	std::vector<InfoCluster> infoCluster(centroid.size(), InfoCluster(vertexInfo[vertices[0]]->borders()));
+	InfoCluster* _infoCluster = infoCluster.data();
+	size_t _infoClusterSize = infoCluster.size();
 
 	size_t iteration = 0;
-
 	do {
 		++iteration;
 		centroid = newCentroid;
-		for (auto& cvi : clusterVerticesIndex) { cvi.clear(); }
-		
-		std::vector<brandes::VertexInfo<W, W>> centroidInfo(centroid.size(), brandes::VertexInfo<W, W>(vertexInfo[vertices[0]]->borders()));
+		for (auto& ic : infoCluster) { ic.reset(); }
 
 		// Associate each vertex to nearest cluster
+		#pragma omp parallel for reduction(+:_infoCluster[:_infoClusterSize])
 		for (size_t v = 0; v < vertices.size(); ++v)
 		{
-			int nearestC = 0;
-			W nearestDist = vertexInfo[centroid[nearestC]]->contributionDistance(*vertexInfo[vertices[v]]);
+			struct VertexDistance minC(0, 
+				vertexInfo[centroid[0]]->contributionDistance(*vertexInfo[vertices[v]]));
 
 			// Select nearest cluster to current vertex
+			#pragma omp simd reduction(min:minC)
 			for (int c = 1; c < centroid.size(); ++c)
 			{
 				W dist = vertexInfo[centroid[c]]->contributionDistance(*vertexInfo[vertices[v]]);
 
-				if (dist < nearestDist)
+				if (dist < minC.distance)
 				{
-					nearestC = c;
-					nearestDist = dist;
+					minC.vertex = c;
+					minC.distance = dist;
 				}
 			}
 
 			// Store vertex association to selected cluster
-			clusterVerticesIndex[nearestC].push_back(v);
-			centroidInfo[nearestC] += *vertexInfo[vertices[v]];
+			_infoCluster[minC.vertex].centroidInfo += *vertexInfo[vertices[v]];
+			_infoCluster[minC.vertex].vIndices.push_back(v);
 		}
 
 		// Choose new centroids for each computed cluster
 		for (int c = 0; c < centroid.size(); ++c)
 		{
-			if (clusterVerticesIndex[c].empty())
+			auto& ic = infoCluster[c];
+			if (ic.vIndices.empty())
 			{
 				continue;
 			}
 
-			centroidInfo[c] /= clusterVerticesIndex[c].size();
+			ic.centroidInfo /= ic.vIndices.size();
 
-			V nearestV = clusterVerticesIndex[c][0];
-			W nearestDist = centroidInfo[c].contributionDistance(*vertexInfo[vertices[nearestV]]);
+			struct VertexDistance minV(ic.vIndices[0],
+				ic.centroidInfo.contributionDistance(*vertexInfo[vertices[ic.vIndices[0]]]));
 
 			// New centroid will be the nearest existing vertex to computed centroid
-			for (size_t v = 1; v < clusterVerticesIndex[c].size(); ++v)
+			#pragma omp simd reduction(min:minV)
+			for (size_t v = 1; v < ic.vIndices.size(); ++v)
 			{
-				W dist = centroidInfo[c].contributionDistance(*vertexInfo[vertices[clusterVerticesIndex[c][v]]]);
+				W dist = ic.centroidInfo.contributionDistance(*vertexInfo[vertices[ic.vIndices[v]]]);
 
-				if (dist < nearestDist)
+				if (dist < minV.distance)
 				{
-					nearestV = clusterVerticesIndex[c][v];
-					nearestDist = dist;
+					minV.vertex = ic.vIndices[v];
+					minV.distance = dist;
 				}
 			}
 
-			newCentroid[c] = vertices[nearestV];
+			newCentroid[c] = vertices[minV.vertex];
 		}
 
 	// Iterate until no significant change in centroids is detected or max iteration is reached
@@ -120,11 +155,14 @@ fastbc::kmeans::PlusPlusKMeans<V, W>::computeCentroids(
 		std::make_pair(centroid, std::vector<V>(centroid.size(), 0));
 
 	// Compute each centroid final weight
+	V* cWeights = centroidWeights.second.data();
+	size_t cWeightsSize = centroidWeights.second.size();
 	for (int c = 0; c < centroid.size(); ++c)
 	{
-		for (size_t v = 0; v < clusterVerticesIndex[c].size(); ++v)
+		#pragma omp simd reduction(+:cWeights[:cWeightsSize])
+		for (size_t v = 0; v < infoCluster[c].vIndices.size(); ++v)
 		{
-			centroidWeights.second[c] += weights[clusterVerticesIndex[c][v]];
+			cWeights[c] += weights[infoCluster[c].vIndices[v]];
 		}
 	}
 
@@ -176,6 +214,7 @@ W fastbc::kmeans::PlusPlusKMeans<V, W>::_centroidVariance(
 {
 	W maxVariance = 0;
 
+	#pragma omp simd reduction(max:maxVariance)
 	for (int c = 0; c < oldCentroid.size(); ++c)
 	{
 		W variance = vertexInfo[oldCentroid[c]]->contributionDistance(*vertexInfo[newCentroid[c]]);

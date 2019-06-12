@@ -14,6 +14,6 @@ target_include_directories(fastbc INTERFACE "include")
 target_link_libraries(fastbc 
 	INTERFACE 
 	spdlog::spdlog 
-	${OpenMP_CXX_LIBRARIES} )
+	OpenMP::OpenMP_CXX )
 
 add_subdirectory(test)
