@@ -84,11 +84,17 @@ std::vector<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 		SPDLOG_DEBUG("Evaluating BC on cluster {}: {} vertices ({} borders), {} edges", 
 			i, cluster[i]->vertices().size(), cluster[i]->borders().size(), cluster[i]->edges());
 		
+#ifndef FASTBC_BRANDES_CLUSTERED_IGNORE_UNCONNECTED
 		if (cluster[i]->borders().empty())
 		{
-			SPDLOG_ERROR("Cluster {} is disconnected from the rest of the graph, please check your input!", i);
+			SPDLOG_WARN("Cluster {} ({} vertices, {} edges) is disconnected from the rest of the graph.", 
+				i, cluster[i]->vertices().size(), cluster[i]->edges());
 		}
-
+#else
+		if (!cluster[i]->borders().empty())
+		{
+#endif
+		
 		_ce->evaluateCluster(globalBC, verticesInfo, cluster[i]);
 
 		pivotsCluster[i] = _ps->selectPivots(
@@ -96,6 +102,10 @@ std::vector<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 			cluster[i]->vertices(), cluster[i]->borders());
 
 		SPDLOG_DEBUG("Selected {} vertices as pivots in cluster {}", pivotsCluster[i].first.size(), i);
+		
+#ifdef FASTBC_BRANDES_CLUSTERED_IGNORE_UNCONNECTED
+		}
+#endif
 	}
 
 	std::vector<W> intraClusterBC(globalBC);
