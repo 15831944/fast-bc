@@ -22,21 +22,19 @@ namespace fastbc {
 
 		private:
 
-			template<typename N, typename E>
 			struct vertex_backtrack_info_t
 			{
-				E sigma = 0;
-				std::list<N> spPred;
+				W sigma = 0;
+				std::list<V> spPred;
 			};
 
-			template<typename N, typename E>
 			struct backtrack_info_t
 			{
-				std::stack<N> visitStack;
-				std::vector<vertex_backtrack_info_t<N, E>> spBacktrack;
+				std::stack<V> visitStack;
+				std::vector<vertex_backtrack_info_t> spBacktrack;
 			};
 
-			backtrack_info_t<V, W> _dijkstra_SSSP(
+			backtrack_info_t _dijkstra_SSSP(
 				V src,
 				std::shared_ptr<const IGraph<V, W>> graph);
 		};
@@ -50,7 +48,7 @@ std::vector<W> fastbc::brandes::DijkstraSSBrandesBC<V, W>::singleSourceBrandes(
 	std::shared_ptr<const IGraph<V, W>> graph)
 {
 	// Compute shortest path storing border information 
-	backtrack_info_t<V, W> bi = _dijkstra_SSSP(source, graph);
+	struct backtrack_info_t bi = _dijkstra_SSSP(source, graph);
 	auto& visitStack = bi.visitStack;
 	auto& backtrackInfo = bi.spBacktrack;
 
@@ -83,13 +81,13 @@ std::vector<W> fastbc::brandes::DijkstraSSBrandesBC<V, W>::singleSourceBrandes(
 }
 
 template<typename V, typename W>
-fastbc::brandes::DijkstraSSBrandesBC<V, W>::backtrack_info_t<V, W>
+struct fastbc::brandes::DijkstraSSBrandesBC<V, W>::backtrack_info_t
 fastbc::brandes::DijkstraSSBrandesBC<V, W>::_dijkstra_SSSP(
 	V src,
 	std::shared_ptr<const IGraph<V, W>> graph)
 {
 	// Output information data structure
-	backtrack_info_t<V, W> backtrackInfo;
+	struct backtrack_info_t backtrackInfo;
 	auto& visitStack = backtrackInfo.visitStack;
 	auto& vertexBInfo = backtrackInfo.spBacktrack;
 	vertexBInfo.resize(graph->vertices().size());

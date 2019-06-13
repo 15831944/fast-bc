@@ -81,8 +81,8 @@ fastbc::kmeans::PlusPlusKMeans<V, W>::computeCentroids(
 	std::vector<V> newCentroid = _initPlusPlus(k, vertices, vertexInfo);
 	std::vector<V> centroid(newCentroid.size());
 
-	std::vector<InfoCluster> infoCluster(centroid.size(), InfoCluster(vertexInfo[vertices[0]]->borders()));
-	InfoCluster* _infoCluster = infoCluster.data();
+	std::vector<struct InfoCluster> infoCluster(centroid.size(), InfoCluster(vertexInfo[vertices[0]]->borders()));
+	struct InfoCluster* _infoCluster = infoCluster.data();
 	size_t _infoClusterSize = infoCluster.size();
 
 	size_t iteration = 0;

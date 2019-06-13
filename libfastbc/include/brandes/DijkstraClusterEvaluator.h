@@ -25,21 +25,19 @@ namespace fastbc {
 
 		private:
 
-			template<typename N, typename E>
 			struct vertex_backtrack_info_t
 			{
-				E sigma = 0;
-				std::list<N> spPred;
+				W sigma = 0;
+				std::list<V> spPred;
 			};
 
-			template<typename N, typename E>
 			struct backtrack_info_t
 			{
-				std::stack<N> visitStack;
-				std::map<N, vertex_backtrack_info_t<N, E>> spBacktrack;
+				std::stack<V> visitStack;
+				std::map<V, vertex_backtrack_info_t> spBacktrack;
 			};
 
-			backtrack_info_t<V, W> _dijkstra_SSSP(
+			backtrack_info_t _dijkstra_SSSP(
 				std::vector<std::shared_ptr<VertexInfo<V, W>>>& globalVI,
 				V src,
 				std::shared_ptr<const ISubGraph<V, W>> graph);
@@ -72,7 +70,7 @@ void fastbc::brandes::DijkstraClusterEvaluator<V, W>::evaluateCluster(
 		for (auto& vw : delta) { vw.second = 0; }
 
 		// Compute shortest path storing border information 
-		backtrack_info_t<V, W> bi = _dijkstra_SSSP(globalVI, src, cluster);
+		struct backtrack_info_t bi = _dijkstra_SSSP(globalVI, src, cluster);
 		auto& visitStack = bi.visitStack;
 		auto& backtrackInfo = bi.spBacktrack;
 
@@ -99,14 +97,14 @@ void fastbc::brandes::DijkstraClusterEvaluator<V, W>::evaluateCluster(
 }
 
 template<typename V, typename W>
-fastbc::brandes::DijkstraClusterEvaluator<V, W>::backtrack_info_t<V, W>
+struct fastbc::brandes::DijkstraClusterEvaluator<V, W>::backtrack_info_t
 fastbc::brandes::DijkstraClusterEvaluator<V, W>::_dijkstra_SSSP(
 	std::vector<std::shared_ptr<VertexInfo<V, W>>>& globalVI,
 	V src,
 	std::shared_ptr<const ISubGraph<V, W>> graph)
 {
 	// Output information data structure
-	backtrack_info_t<V, W> backtrackInfo;
+	struct backtrack_info_t backtrackInfo;
 	auto& visitStack = backtrackInfo.visitStack;
 	auto& vertexBInfo = backtrackInfo.spBacktrack;
 
