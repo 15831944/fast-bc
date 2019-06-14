@@ -6,7 +6,7 @@
 #include "ISSBrandesBC.h"
 #include "IPivotSelector.h"
 #include "VertexInfo.h"
-#include <louvain/ILouvainEvaluator.h>
+#include <IGraphPartition.h>
 #include <SubGraph.h>
 
 #include <memory>
@@ -20,8 +20,20 @@ namespace fastbc {
 		class ClusteredBrandeBC : public IBrandesBC<V, W>
 		{
 		public:
+			/*
+			 *	@brief Initialize a clustered brandes BC computer
+			 * 
+			 * 	@details The object will perform a clustered Brandes' BC computation
+			 * 			 using given algorithm instances for clusters creation and
+			 * 			 evaluation and BC computation
+			 * 
+			 * 	@param gp Graph partition creator
+			 * 	@param ce Cluster BC evaluator
+			 * 	@param ssb Single source Brandes' BC computer
+			 * 	@param ps Pivot selector to use on computed clusters
+			 */
 			ClusteredBrandeBC(
-				std::shared_ptr<louvain::ILouvainEvaluator<V, W>> le,
+				std::shared_ptr<IGraphPartition<V, W>> gp,
 				std::shared_ptr<IClusterEvaluator<V, W>> ce,
 				std::shared_ptr<ISSBrandesBC<V, W>> ssb,
 				std::shared_ptr<IPivotSelector<V, W>> ps);
@@ -29,7 +41,7 @@ namespace fastbc {
 			std::vector<W> computeBC(const std::shared_ptr<const IGraph<V, W>> graph) override;
 
 		private:
-			std::shared_ptr<louvain::ILouvainEvaluator<V, W>> _le;
+			std::shared_ptr<IGraphPartition<V, W>> _gp;
 			std::shared_ptr<IClusterEvaluator<V, W>> _ce;
 			std::shared_ptr<ISSBrandesBC<V, W>> _ssb;
 			std::shared_ptr<IPivotSelector<V, W>> _ps;
@@ -40,11 +52,11 @@ namespace fastbc {
 
 template<typename V, typename W>
 fastbc::brandes::ClusteredBrandeBC<V, W>::ClusteredBrandeBC(
-	std::shared_ptr<fastbc::louvain::ILouvainEvaluator<V, W>> le,
+	std::shared_ptr<fastbc::IGraphPartition<V, W>> gp,
 	std::shared_ptr<fastbc::brandes::IClusterEvaluator<V, W>> ce,
 	std::shared_ptr<fastbc::brandes::ISSBrandesBC<V, W>> ssb,
 	std::shared_ptr<fastbc::brandes::IPivotSelector<V, W>> ps)
-	: _le(le), _ce(ce), _ssb(ssb), _ps(ps)
+	: _gp(gp), _ce(ce), _ssb(ssb), _ps(ps)
 {
 }
 
@@ -67,7 +79,7 @@ std::vector<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 	// Compute graph partition using Louvain communities detection algorithm
 	SPDLOG_INFO("Computing clusters with Louvain algorithm...");
 	std::vector<std::vector<V>> communities = 
-		_le->evaluateGraph(std::static_pointer_cast<const IDegreeGraph<V, W>>(graph));
+		_gp->partitionGraph(std::static_pointer_cast<const IDegreeGraph<V, W>>(graph));
 
 	SPDLOG_INFO("Graph partitioned in {} clusters", communities.size());
 	cluster.resize(communities.size());
@@ -108,8 +120,11 @@ std::vector<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 #endif
 	}
 
+	// Store computed intra-cluster BC for corrections on 
+	// following global BC computation step
 	std::vector<W> intraClusterBC(globalBC);
 	
+	// Print total number of selected pivots
 #if SPDLOG_ACTIVE_LEVEL <= SPDLOG_LEVEL_INFO
 	size_t pivotCount = 0;
 	#pragma omp simd reduction(+:pivotCount)
@@ -120,7 +135,7 @@ std::vector<W> fastbc::brandes::ClusteredBrandeBC<V, W>::computeBC(
 	SPDLOG_INFO("Computing global BC from {} pivots...", pivotCount);
 #endif
 
-	// Compute global dependecy pivot contribution
+	// Compute global dependecy contribution for each selected pivot
 	W* _globalBC = globalBC.data();
 	size_t _globalBCsize = globalBC.size();
 	for (size_t c = 0; c < cluster.size(); ++c)

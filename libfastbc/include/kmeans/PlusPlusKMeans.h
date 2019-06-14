@@ -96,13 +96,13 @@ fastbc::kmeans::PlusPlusKMeans<V, W>::computeCentroids(
 		for (size_t v = 0; v < vertices.size(); ++v)
 		{
 			struct VertexDistance minC(0, 
-				vertexInfo[centroid[0]]->contributionDistance(*vertexInfo[vertices[v]]));
+				vertexInfo[centroid[0]]->squaredDistance(*vertexInfo[vertices[v]]));
 
 			// Select nearest cluster to current vertex
 			#pragma omp simd reduction(min:minC)
 			for (int c = 1; c < centroid.size(); ++c)
 			{
-				W dist = vertexInfo[centroid[c]]->contributionDistance(*vertexInfo[vertices[v]]);
+				W dist = vertexInfo[centroid[c]]->squaredDistance(*vertexInfo[vertices[v]]);
 
 				if (dist < minC.distance)
 				{
@@ -128,13 +128,13 @@ fastbc::kmeans::PlusPlusKMeans<V, W>::computeCentroids(
 			ic.centroidInfo /= ic.vIndices.size();
 
 			struct VertexDistance minV(ic.vIndices[0],
-				ic.centroidInfo.contributionDistance(*vertexInfo[vertices[ic.vIndices[0]]]));
+				ic.centroidInfo.squaredDistance(*vertexInfo[vertices[ic.vIndices[0]]]));
 
 			// New centroid will be the nearest existing vertex to computed centroid
 			#pragma omp simd reduction(min:minV)
 			for (size_t v = 1; v < ic.vIndices.size(); ++v)
 			{
-				W dist = ic.centroidInfo.contributionDistance(*vertexInfo[vertices[ic.vIndices[v]]]);
+				W dist = ic.centroidInfo.squaredDistance(*vertexInfo[vertices[ic.vIndices[v]]]);
 
 				if (dist < minV.distance)
 				{
@@ -191,7 +191,7 @@ fastbc::kmeans::PlusPlusKMeans<V, W>::_initPlusPlus(
 		for (int v = 0; v < vertices.size(); ++v)
 		{
 			// Update distance from prevoiusly selected centroids
-			cDist[v] = cDist[v] * _p + lastCentroid->contributionDistance(*vertexInfo[vertices[v]]) * p;
+			cDist[v] = cDist[v] * _p + lastCentroid->squaredDistance(*vertexInfo[vertices[v]]) * p;
 
 			// Update farthest from existing centroids
 			if (cDist[v] > cDist[farthestV])
@@ -217,7 +217,7 @@ W fastbc::kmeans::PlusPlusKMeans<V, W>::_centroidVariance(
 	#pragma omp simd reduction(max:maxVariance)
 	for (int c = 0; c < oldCentroid.size(); ++c)
 	{
-		W variance = vertexInfo[oldCentroid[c]]->contributionDistance(*vertexInfo[newCentroid[c]]);
+		W variance = vertexInfo[oldCentroid[c]]->squaredDistance(*vertexInfo[newCentroid[c]]);
 
 		if (variance > maxVariance)
 		{

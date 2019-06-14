@@ -17,7 +17,7 @@ namespace fastbc {
 			/**
 			 *	@brief Compute exact partial betweenness centrality values from given source vertex
 			 * 
-			 *	@note graph must be a complete graph
+			 *	@note graph must be a complete graph (vertex indices from 0 to graph->vertices().size())
 			 *
 			 *	@param source Source vertex
 			 *	@param graph Full graph object

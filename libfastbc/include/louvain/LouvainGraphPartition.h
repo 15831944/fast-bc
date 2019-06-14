@@ -1,7 +1,7 @@
-#ifndef FASTBC_LOUVAIN_LOUVAINEVALUATOR_H
-#define FASTBC_LOUVAIN_LOUVAINEVALUATOR_H
+#ifndef FASTBC_LOUVAIN_LOUVAINGRAPHPARTITION_H
+#define FASTBC_LOUVAIN_LOUVAINGRAPHPARTITION_H
 
-#include <louvain/ILouvainEvaluator.h>
+#include <IGraphPartition.h>
 #include <louvain/LouvainGraph.h>
 #include <louvain/Partition.h>
 
@@ -13,7 +13,7 @@ namespace fastbc {
 	namespace louvain {
 			
 		template<typename V, typename W>
-		class LouvainEvaluator : public ILouvainEvaluator<V, W>
+		class LouvainGraphPartition : public IGraphPartition<V, W>
 		{
 	 
 		private:
@@ -70,7 +70,7 @@ namespace fastbc {
 
 
 		public:
-			LouvainEvaluator(
+			LouvainGraphPartition(
 				const std::set<std::mt19937::result_type>& seeds, 
 				double precision = 0.01)
 				: _parallelism(seeds.size()), _precision(precision)
@@ -81,7 +81,7 @@ namespace fastbc {
 				}
 			}		
 				
-			Result evaluateGraph(Graph graph) override
+			Result partitionGraph(Graph graph) override
 			{
 			    LouvainGraph<V, W> g(graph);
 			    std::vector<Partition<V, W> > p(_parallelism, Partition<V, W>(g, _precision));

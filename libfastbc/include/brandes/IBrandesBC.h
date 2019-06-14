@@ -14,6 +14,13 @@ namespace fastbc {
 		{
 		public:
 
+			/**
+			 * 	@brief Compute betweenness centrality of graph using Brandes' algorithm as main routine
+			 * 
+			 * 	@note graph must be a compelte graph: vertex indices from 0 to graph->vertices().size()
+			 * 
+			 * 	@param graph Complete graph to compute BC for
+			 */
 			virtual std::vector<W> computeBC(const std::shared_ptr<const IGraph<V, W>> graph) = 0;
 		};
 

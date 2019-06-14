@@ -166,6 +166,8 @@ fastbc::brandes::DijkstraClusterEvaluator<V, W>::_dijkstra_SSSP(
 	globalVI[src] = std::make_shared<VertexInfo<V, W>>(borders.size());
 	for (const auto& b : borders)
 	{
+		// BE AWARE: SP lentgh from unreached border is converted to zero to enable 
+		// 			 correct VertexInfo distance computation
 		globalVI[src]->setBorderSPLength(storeIndex, dist[b] != std::numeric_limits<W>::max() ? dist[b] : 0);
 		globalVI[src]->setBorderSPCount(storeIndex, vertexBInfo[b].sigma);
 		storeIndex++;

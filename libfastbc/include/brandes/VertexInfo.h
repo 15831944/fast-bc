@@ -5,13 +5,15 @@
 #include <cmath>
 #include <vector>
 
-#ifndef FASTBC_BRANDES_VERTEXINFO_PENALTY
-#define FASTBC_BRANDES_VERTEXINFO_PENALTY 1000
-#endif
-
 namespace fastbc {
 	namespace brandes {
 
+		/*
+		 *	@brief Vertex topological information container class
+		 *	
+		 *	@details This container class stores information about a vertex in a cluster
+		 *			 and its shortest path length and count to cluster's border vertices
+		 */
 		template<typename V, typename W>
 		class VertexInfo
 		{
@@ -29,27 +31,61 @@ namespace fastbc {
 			template<typename N, typename E>
 			VertexInfo<V, W>& operator=(const VertexInfo<N, E>& other);
 
+			/*
+			 *	@brief Set SP length from border at storeIndex
+			 * 
+			 * 	@param storeIndex Storage array index relative to wanted border
+			 * 	@param length SP length from border
+			 */
 			void setBorderSPLength(int storeIndex, W length);
 
+			/*
+			 *	@brief Get SP length from border at storeIndex
+			 * 
+			 * 	@param storeIndex Storage array index relative to wanted border
+			 */
 			W getBorderSPLength(int storeIndex) const;
 
+			/*
+			 *	@brief Set SP count to border at storeIndex
+			 * 
+			 * 	@param storeIndex Storage array index relative to wanted border
+			 * 	@param count SP count to border
+			 */
 			void setBorderSPCount(int storeIndex, V count);
 
+			/*
+			 *	@brief Set SP count to border at storeIndex
+			 * 
+			 * 	@param storeIndex Storage array index relative to wanted border
+			 */
 			V getBorderSPCount(int storeIndex) const;
 
+			/*	
+			 * 	@brief Get minimum SP length among all borders SP lengths
+			 */
 			W getMinBorderSPLength() const;
 
+			/*	
+			 *	@brief Subtract minimum SP length from each border SP length
+			 */
 			void normalize();
 
+			/*
+			 *	@brief Reset all SP lengths and counts to zero
+			 */
 			void reset();
 
+			/*
+			 * 	@brief Get border vertices count of this instance
+			 */
 			int borders() const;
 
+			/*
+			 *	@brief Compute euclidean distance between vectors of border SP length and count
+			 */
 			template<typename N, typename E>
 			W squaredDistance(const VertexInfo<N, E>& other) const;
-
-			template<typename N, typename E>
-			W contributionDistance(const VertexInfo<N, E>& other) const;
 
 			template<typename N, typename E>
 			VertexInfo<V, W>& operator+=(const VertexInfo<N, E>& other);
@@ -268,32 +304,6 @@ W fastbc::brandes::VertexInfo<V, W>::squaredDistance(const VertexInfo<N, E>& oth
 	}
 
 	return sqDistance;
-}
-
-template<typename V, typename W>
-template<typename N, typename E>
-W fastbc::brandes::VertexInfo<V, W>::contributionDistance(const VertexInfo<N, E>& other) const
-{
-	W cDistance = 0;
-
-	#pragma omp simd reduction(+:cDistance)
-	for (int i = 0; i < _borderCount; ++i)
-	{
-		if (_borderSPCount[i] != 0 || other._borderSPCount[i] != 0)
-		{
-			if (_borderSPCount[i] > 0 && other._borderSPCount[i] > 0)
-			{
-				cDistance += std::pow(_borderSPLength[i] - (W)other._borderSPLength[i], 2);
-				cDistance += std::pow(_borderSPCount[i] - (V)other._borderSPCount[i], 2);
-			}
-			else
-			{
-				cDistance += (W)FASTBC_BRANDES_VERTEXINFO_PENALTY;
-			}
-		}
-	}
-
-	return cDistance;
 }
 
 template<typename V, typename W>

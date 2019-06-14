@@ -2,3 +2,7 @@ build
 .vscode
 .vs
 CMakeSettings.json
+
+*.txt
+!DWGtext.txt
+!CMakeLists.txt

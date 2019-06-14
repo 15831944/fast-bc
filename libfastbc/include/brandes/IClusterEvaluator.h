@@ -23,7 +23,8 @@ namespace fastbc {
 			 *			 shortest paths through them
 			 * 
 			 *	@note clusterBC and globalVI must be already initialized with correct 
-			 *		  size of the global graph referenced by cluster sub-graph
+			 *		  size of the global graph referenced by cluster sub-graph. 
+			 *		  Only cluster vertex indices will be modified during method call.
 			 * 
 			 *	@param clusterBC Computed BC value will be summed to given reference
 			 *	@param globalVI A new VertexInfo will be allocated for each of sub-graph vertices
