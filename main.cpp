@@ -3,13 +3,15 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 
 #define FASTBC_BRANDES_ENABLE_PIVOT_BORDER
+#define FASTBC_BRANDES_CLUSTERED_IGNORE_UNCONNECTED
 
 #include <DirectedWeightedGraph.h>
-#include <brandes/DijkstraClusterEvaluator.h>
-#include <brandes/VertexInfoPivotSelector.h>
-#include <brandes/DijkstraSSBrandesBC.h>
 #include <brandes/ClusteredBrandesBC.h>
+#include <brandes/DijkstraClusterEvaluator.h>
+#include <brandes/DijkstraSSBrandesBC.h>
+#include <brandes/ExactBrandesBC.h>
 #include <brandes/KMeansPivotSelector.h>
+#include <brandes/VertexInfoPivotSelector.h>
 #include <kmeans/PlusPlusKMeans.h>
 #include <louvain/LouvainGraphPartition.h>
 
@@ -41,6 +43,7 @@ int main(int argc, char **argv)
 	std::string edgeListPath, outBCPath, louvainSeed, loggerLevel;
 	int louvainExecutors;
 	double louvainPrecision, kFrac;
+	bool exactBC;
 
 	popl::OptionParser op("Usage: fastbc [ options ] <edge_list_path>");
 	auto ls = op.add<popl::Value<std::string>, popl::Attribute::optional>(
@@ -60,8 +63,12 @@ int main(int argc, char **argv)
 		&louvainPrecision);
 	auto kf = op.add<popl::Value<double>, popl::Attribute::optional>(
 		"k", "kfrac",
-		"Topological classes aggregation factor (0-1)");
+		"Topological classes aggregation factor (0-1). Enables 2-Clustered Brandes algorithm");
 	kf->assign_to(&kFrac);
+	op.add<popl::Switch, popl::Attribute::optional>(
+		"", "exact",
+		"Force exact betweenness computation (very long time)",
+		&exactBC);
 	op.add<popl::Value<std::string>, popl::Attribute::optional>(
 		"o", "output",
 		"Output file path",
@@ -191,43 +198,55 @@ int main(int argc, char **argv)
 	// Print some information about loaded graph
 	SPDLOG_INFO("Loaded graph contains {} vertices and {} edges", graph->vertices().size(), graph->edges());
 
-
-	/* Louvain community detector */
-	std::shared_ptr<fastbc::IGraphPartition<FASTBC_V_TYPE, FASTBC_W_TYPE>> louvainEvaluator =
-		std::make_shared<fastbc::louvain::LouvainGraphPartition<FASTBC_V_TYPE, FASTBC_W_TYPE>>(
-			seed, louvainPrecision);
-
-	/* Brandes cluster evaluator */
-	std::shared_ptr<fastbc::brandes::IClusterEvaluator<FASTBC_V_TYPE, FASTBC_W_TYPE>> clusterEvaluator =
-		std::make_shared<fastbc::brandes::DijkstraClusterEvaluator<FASTBC_V_TYPE, FASTBC_W_TYPE>>();
-
-	/* Cluster pivot selector */
-	std::shared_ptr<fastbc::brandes::IPivotSelector<FASTBC_V_TYPE, FASTBC_W_TYPE>> pivotSelector;
-	if (kf->is_set())
+	std::shared_ptr<fastbc::brandes::IBrandesBC<FASTBC_V_TYPE, FASTBC_W_TYPE>> brandesBC;
+	if(exactBC)
 	{
-		// Kmeans approximated pivot selector
-		pivotSelector = 
-			std::make_shared<fastbc::brandes::KMeansPivotSelector<FASTBC_V_TYPE, FASTBC_W_TYPE>>(
-				std::shared_ptr<fastbc::brandes::IPivotSelector<FASTBC_V_TYPE, FASTBC_W_TYPE>>(
-					new fastbc::brandes::VertexInfoPivotSelector<FASTBC_V_TYPE, FASTBC_W_TYPE>()),
-				std::shared_ptr<fastbc::kmeans::IKMeans<FASTBC_V_TYPE, FASTBC_W_TYPE>>(
-					new fastbc::kmeans::PlusPlusKMeans<FASTBC_V_TYPE, FASTBC_W_TYPE>()),
-				kFrac);
+		SPDLOG_INFO("Algorithm: exact Brandes' betweenness centrality");
+		brandesBC = 
+			std::make_shared<fastbc::brandes::ExactBrandesBC<FASTBC_V_TYPE, FASTBC_W_TYPE>>();
 	}
 	else
 	{
-		pivotSelector = 
-			std::make_shared<fastbc::brandes::VertexInfoPivotSelector<FASTBC_V_TYPE, FASTBC_W_TYPE>>();
+		/* Louvain community detector */
+		std::shared_ptr<fastbc::IGraphPartition<FASTBC_V_TYPE, FASTBC_W_TYPE>> louvainEvaluator =
+			std::make_shared<fastbc::louvain::LouvainGraphPartition<FASTBC_V_TYPE, FASTBC_W_TYPE>>(
+				seed, louvainPrecision);
+
+		/* Brandes cluster evaluator */
+		std::shared_ptr<fastbc::brandes::IClusterEvaluator<FASTBC_V_TYPE, FASTBC_W_TYPE>> clusterEvaluator =
+			std::make_shared<fastbc::brandes::DijkstraClusterEvaluator<FASTBC_V_TYPE, FASTBC_W_TYPE>>();
+
+		/* Cluster pivot selector */
+		std::shared_ptr<fastbc::brandes::IPivotSelector<FASTBC_V_TYPE, FASTBC_W_TYPE>> pivotSelector;
+		if (kf->is_set())
+		{
+			SPDLOG_INFO("Algorithm: 2-clustered Brandes' betweenness centrality");
+			// Kmeans approximated pivot selector
+			pivotSelector = 
+				std::make_shared<fastbc::brandes::KMeansPivotSelector<FASTBC_V_TYPE, FASTBC_W_TYPE>>(
+					std::shared_ptr<fastbc::brandes::IPivotSelector<FASTBC_V_TYPE, FASTBC_W_TYPE>>(
+						new fastbc::brandes::VertexInfoPivotSelector<FASTBC_V_TYPE, FASTBC_W_TYPE>()),
+					std::shared_ptr<fastbc::kmeans::IKMeans<FASTBC_V_TYPE, FASTBC_W_TYPE>>(
+						new fastbc::kmeans::PlusPlusKMeans<FASTBC_V_TYPE, FASTBC_W_TYPE>()),
+					kFrac);
+		}
+		else
+		{
+			SPDLOG_INFO("Algorithm: clustered Brandes' betweenness centrality");
+			pivotSelector = 
+				std::make_shared<fastbc::brandes::VertexInfoPivotSelector<FASTBC_V_TYPE, FASTBC_W_TYPE>>();
+		}
+
+		/* Single source Brandes */
+		std::shared_ptr<fastbc::brandes::DijkstraSSBrandesBC<FASTBC_V_TYPE, FASTBC_W_TYPE>> singleSourceBC =
+			std::make_shared<fastbc::brandes::DijkstraSSBrandesBC<FASTBC_V_TYPE, FASTBC_W_TYPE>>();
+
+		/* Clustered Brandes Betweenness centrality calculator */
+		brandesBC =
+			std::make_shared<fastbc::brandes::ClusteredBrandeBC<FASTBC_V_TYPE, FASTBC_W_TYPE>>(
+				louvainEvaluator, clusterEvaluator, singleSourceBC, pivotSelector);
 	}
-
-	/* Single source Brandes */
-	std::shared_ptr<fastbc::brandes::DijkstraSSBrandesBC<FASTBC_V_TYPE, FASTBC_W_TYPE>> singleSourceBC =
-		std::make_shared<fastbc::brandes::DijkstraSSBrandesBC<FASTBC_V_TYPE, FASTBC_W_TYPE>>();
-
-	/* Clustered Brandes Betweenness centrality calculator */
-	std::shared_ptr<fastbc::brandes::IBrandesBC<FASTBC_V_TYPE, FASTBC_W_TYPE>> brandesBC =
-		std::make_shared<fastbc::brandes::ClusteredBrandeBC<FASTBC_V_TYPE, FASTBC_W_TYPE>>(
-			louvainEvaluator, clusterEvaluator, singleSourceBC, pivotSelector);
+	
 
 	/*
 	 *	Program initialization end
