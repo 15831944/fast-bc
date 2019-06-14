@@ -42,7 +42,7 @@ The output is a list of values where the value in position i is the betweennes c
 
 ### Parameters
 
-|Option   |Default value|Paper|
+|Option   |Default value|Info|
 |---|---|---|
 |-s<br>--louvain-seeds||Louvain is an euristic algorithm. The output depends on the random order in which vertexes are examined. With this option you can pass a seed (int) to each louvain instance, to ensure the repeatability of results.|
 |-e<br>--louvain-instances|4|To get better results, for each iteration of the Louvain algorithm the communities are calculated multiple times in parallel. In each parallel instance a different order for vertices examination is considered. The result with better modularity is then kept for the next iteraton. This parameter specify how many parallel instances of the partition calculation must run at each iteration.|
@@ -55,7 +55,7 @@ The output is a list of values where the value in position i is the betweennes c
 
 ## References
 
-|Algorithm   |Info   |
+|Algorithm   |Paper   |
 |---|---|
 |fast-bc   |A.Furno, N. El-Faouzi, R. Sharma, E. Zimeo. *Fast Computation of Betweenness Centrality to Locate Vulnerabilities in Very Large Road Networks*. In 97th Annual Meeting of the Transportation Research Board, July 2017. https://people.licit-lyon.eu/furno/documents/furno_trb18.pdf|
 |Louvain   |V.D. Blondel,J.L. Guillaume,R. Lambiotte,E. Lefebvre. *Fast unfolding of communities in large networks.*. JSTAT 2008: P10008. https://arxiv.org/pdf/0803.0476.pdf   |
