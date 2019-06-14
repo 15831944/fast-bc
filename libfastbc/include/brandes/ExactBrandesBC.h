@@ -50,40 +50,43 @@ std::vector<W> fastbc::brandes::ExactBrandesBC<V, W>::computeBC(
     W* _globalBC = globalBC.data();
 	size_t _globalBCsize = globalBC.size();
 
-	// Partial dependency vertices map
-	std::vector<W> delta(graph->vertices().size(), (W)0);
-
-	// Compute SP from each cluster vertex
-	#pragma omp parallel for private(delta) reduction(+:_globalBC[:_globalBCsize])
-	for (size_t srcIndex = 0; srcIndex < graph->vertices().size(); ++srcIndex)
+	#pragma omp parallel
 	{
-		const V& src = graph->vertices()[srcIndex];
+		// Partial dependency vertices map
+		std::vector<W> delta(graph->vertices().size(), (W)0);
 
-		// Reset partial dependency structure before starting
-		delta.assign(delta.size(), 0);
-
-		// Compute shortest path storing border information 
-		struct backtrack_info_t bi = _dijkstra_SSSP(src, graph);
-		auto& visitStack = bi.visitStack;
-		auto& backtrackInfo = bi.spBacktrack;
-
-		// Backward visit of each vertex from dijkstra iteration 
-		while (!visitStack.empty())
+		// Compute SP from each cluster vertex
+		#pragma omp for reduction(+:_globalBC[:_globalBCsize])
+		for (size_t srcIndex = 0; srcIndex < graph->vertices().size(); ++srcIndex)
 		{
-			V w = visitStack.top();
-			visitStack.pop();
+			const V& src = graph->vertices()[srcIndex];
 
-			// Compute each vertex dependency for current src
-			for (auto& v : backtrackInfo[w].spPred)
+			// Reset partial dependency structure before starting
+			delta.assign(delta.size(), 0);
+
+			// Compute shortest path storing border information 
+			struct backtrack_info_t bi = _dijkstra_SSSP(src, graph);
+			auto& visitStack = bi.visitStack;
+			auto& backtrackInfo = bi.spBacktrack;
+
+			// Backward visit of each vertex from dijkstra iteration 
+			while (!visitStack.empty())
 			{
-				W c = backtrackInfo[v].sigma / backtrackInfo[w].sigma * (1.0 + delta[w]);
+				V w = visitStack.top();
+				visitStack.pop();
 
-				delta[v] += c;
-			}
+				// Compute each vertex dependency for current src
+				for (auto& v : backtrackInfo[w].spPred)
+				{
+					W c = backtrackInfo[v].sigma / backtrackInfo[w].sigma * (1.0 + delta[w]);
 
-			if (w != src)
-			{
-				_globalBC[w] += delta[w];
+					delta[v] += c;
+				}
+
+				if (w != src)
+				{
+					_globalBC[w] += delta[w];
+				}
 			}
 		}
 	}

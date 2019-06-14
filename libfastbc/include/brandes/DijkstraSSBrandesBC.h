@@ -52,7 +52,7 @@ std::vector<W> fastbc::brandes::DijkstraSSBrandesBC<V, W>::singleSourceBrandes(
 	auto& visitStack = bi.visitStack;
 	auto& backtrackInfo = bi.spBacktrack;
 
-	// Partial vertices dependency map
+	// Partial vertices dependency
 	std::vector<W> delta(graph->vertices().size(), 0);
 
 	std::vector<W> ssBC(graph->vertices().size(), (W)0);

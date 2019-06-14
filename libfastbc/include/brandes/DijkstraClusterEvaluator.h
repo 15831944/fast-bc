@@ -56,41 +56,44 @@ void fastbc::brandes::DijkstraClusterEvaluator<V, W>::evaluateCluster(
 	W* _clusterBC = clusterBC.data();
 	size_t _clusterBCsize = clusterBC.size();
 
-	// Partial dependency vertices map
-	std::map<V, W> delta;
-	for (const auto& v : cluster->vertices()) { delta[v] = 0; }
-
-	// Compute SP from each cluster vertex
-	#pragma omp parallel for private(delta) reduction(+:_clusterBC[:_clusterBCsize])
-	for (size_t srcIndex = 0; srcIndex < cluster->vertices().size(); ++srcIndex)
+	#pragma omp parallel
 	{
-		const V& src = cluster->vertices()[srcIndex];
+		// Partial dependency vertices map
+		std::map<V, W> delta;
+		for (const auto& v : cluster->vertices()) { delta[v] = 0; }
 
-		// Reset partial dependency structure before starting
-		for (auto& vw : delta) { vw.second = 0; }
-
-		// Compute shortest path storing border information 
-		struct backtrack_info_t bi = _dijkstra_SSSP(globalVI, src, cluster);
-		auto& visitStack = bi.visitStack;
-		auto& backtrackInfo = bi.spBacktrack;
-
-		// Backward visit of each vertex from dijkstra iteration 
-		while (!visitStack.empty())
+		// Compute SP from each cluster vertex
+		#pragma omp for reduction(+:_clusterBC[:_clusterBCsize])
+		for (size_t srcIndex = 0; srcIndex < cluster->vertices().size(); ++srcIndex)
 		{
-			V w = visitStack.top();
-			visitStack.pop();
+			const V& src = cluster->vertices()[srcIndex];
 
-			// Compute each vertex dependency for current src
-			for (auto& v : backtrackInfo[w].spPred)
+			// Reset partial dependency structure before starting
+			for (auto& vw : delta) { vw.second = 0; }
+
+			// Compute shortest path storing border information 
+			struct backtrack_info_t bi = _dijkstra_SSSP(globalVI, src, cluster);
+			auto& visitStack = bi.visitStack;
+			auto& backtrackInfo = bi.spBacktrack;
+
+			// Backward visit of each vertex from dijkstra iteration 
+			while (!visitStack.empty())
 			{
-				W c = backtrackInfo[v].sigma / backtrackInfo[w].sigma * (1.0 + delta[w]);
+				V w = visitStack.top();
+				visitStack.pop();
 
-				delta[v] += c;
-			}
+				// Compute each vertex dependency for current src
+				for (auto& v : backtrackInfo[w].spPred)
+				{
+					W c = backtrackInfo[v].sigma / backtrackInfo[w].sigma * (1.0 + delta[w]);
 
-			if (w != src)
-			{
-				_clusterBC[w] += delta[w];
+					delta[v] += c;
+				}
+
+				if (w != src)
+				{
+					_clusterBC[w] += delta[w];
+				}
 			}
 		}
 	}
