@@ -16,21 +16,42 @@ An implementation of [A Clustered Approach for Fast Computation of Betweenness C
 git clone https://github.com/Daddeee/fast-bc
 cd fast-bc/build
 cmake ..
+make
 ```
 
-### Run
-
+### Usage
 ```
-Usage: fbc [ options ] <edge_list_path>:
-  -s, --louvain-seeds arg               Seeds to be used by each parallel louvain execution
-  -e, --louvain-instances arg (=4)      Number of louvain instances
-  -p, --louvain-precision arg (=0.01)   Minimum precision value for louvain algorithm
-  - t -- threads arg (=OMP_NUM_THREADS) Number of threads.
-  -k, --kfrac arg                       Topological classes aggregation factor (0-1)
-  -o, --output arg (=bc.txt)            Output file path
-  -d, --debug arg (=info)               Logger level (trace|debug|info|warning|error|critical|off)
-  ```
-  
+fbc [ options ] <edge_list_path>
+```
+```edge_list_path``` is a file containing the input graph represented as a list of edges. Each line represents an edge in the form ```<src> <dst> <weight>```. Each vertex is represented as an integer value (0 to #Vertices-1) and the graph is assumed to be directed with positive integer weights. 
+
+For example, the following graph:
+
+![](https://www.geeksforgeeks.org/wp-content/uploads/graph11.png)
+
+can be represented with the following list of edges:
+```
+0 1 10
+0 2 3
+0 3 2
+1 3 7
+2 3 6
+```
+
+The output is a list of values where the value in position i is the betweennes centrality of the i-th vertex.
+
+### Parameters
+
+|Option   |Default value|Paper|
+|---|---|---|
+|-s<br>--louvain-seeds||Louvain is an euristic algorithm. The output depends on the random order in which vertexes are examined. With this option you can pass a seed (int) to each louvain instance, to ensure the repeatability of results.|
+|-e<br>--louvain-instances|4|To get better results, for each iteration of the Louvain algorithm the communities are calculated multiple times in parallel. In each parallel instance a different order for vertices examination is considered. The result with better modularity is then kept for the next iteraton. This parameter specify how many parallel instances of the partition calculation must run at each iteration.|
+|-p<br>--louvain-precision|0.01|Terminate the Louvain algorithm when the difference in modularity between consecutive iterations is less than ```louvain-precision```.|
+|-t<br>--threads|OMP_NUM_THREADS|Number of available threads.|
+|-k<br>--kfrac||Specify the number of superclasses that the second level of clustering must create. If for example, inside Louvain community 0 there are 100 classes and kfrac=0.5, the second level of clustering (kmeans) will generate 50 superclasses. |
+|-o<br>--output|bc.txt|The output file name.|
+|-d<br>--debug|info|Logger level (trace\|debug\|info\|warning\|error\|critical\|off)|
+
 ## References
 
 |Algorithm   |Paper   |
