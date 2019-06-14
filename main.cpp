@@ -250,7 +250,15 @@ int main(int argc, char **argv)
 	std::ofstream outFile(outBCPath, std::ofstream::out);
 	for (size_t i = 0; i < bc.size(); ++i)
 	{
-		outFile << bc[i] << std::endl;
+		if(bc[i] >= 0)
+		{
+			outFile << bc[i] << std::endl;
+		}
+		else
+		{
+			outFile << 0 << std::endl;
+		}
+		
 	}
 
 	SPDLOG_INFO("Results written to \"{}\"", outBCPath);
