@@ -39,6 +39,11 @@ TEST_CASE("Getter and setters", "[brandes]")
 {
 	VertexInfo<short, float> vi(4);
 
+	SECTION("Border count getter")
+	{
+		REQUIRE(vi.borders() == 4);
+	}
+
 	SECTION("Border SP length set/get")
 	{
 		REQUIRE(vi.getBorderSPLength(0) == 0.0f);
@@ -65,6 +70,22 @@ TEST_CASE("Getter and setters", "[brandes]")
 		vi.setBorderSPLength(3, 4.7f);
 
 		REQUIRE(vi.getMinBorderSPLength() == 1.1f);
+	}
+
+	SECTION("Reset method")
+	{
+		vi.setBorderSPLength(0, 2.3f);
+		vi.setBorderSPLength(1, 5.2f);
+		vi.setBorderSPCount(2, 1);
+		vi.setBorderSPCount(3, 4);
+
+		vi.reset();
+
+		for(int i = 0; i < vi.borders(); ++i)
+		{
+			REQUIRE(vi.getBorderSPCount(i) == 0);
+			REQUIRE(vi.getBorderSPLength(i) == 0);
+		}
 	}
 }
 

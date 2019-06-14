@@ -19,6 +19,8 @@ target_link_libraries(fastbctests
     Catch2::Catch2
     fastbc )
 
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/DWGtext.txt" 
+	"${CMAKE_CURRENT_BINARY_DIR}/DWGtext.txt" COPYONLY)
 
 
 #########################################################################################
