@@ -55,7 +55,7 @@ The output is a list of values where the value in position i is the betweennes c
 
 ## References
 
-|Algorithm   |Paper   |
+|Algorithm   |Info   |
 |---|---|
 |fast-bc   |A.Furno, N. El-Faouzi, R. Sharma, E. Zimeo. *Fast Computation of Betweenness Centrality to Locate Vulnerabilities in Very Large Road Networks*. In 97th Annual Meeting of the Transportation Research Board, July 2017. https://people.licit-lyon.eu/furno/documents/furno_trb18.pdf|
 |Louvain   |V.D. Blondel,J.L. Guillaume,R. Lambiotte,E. Lefebvre. *Fast unfolding of communities in large networks.*. JSTAT 2008: P10008. https://arxiv.org/pdf/0803.0476.pdf   |
