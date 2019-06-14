@@ -174,6 +174,7 @@ void fastbc::DirectedWeightedGraph<V, W>::initVertices()
 {
 	// Initialize vertices list
 	_vertices.resize(_srcDestWeight.size());
+	#pragma omp simd
 	for (size_t v = 0; v < _vertices.size(); v++)
 	{
 		_vertices[v] = v;

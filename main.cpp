@@ -20,6 +20,8 @@
 #include <iostream>
 #include <random>
 
+#include <omp.h>
+
 #ifndef FASTBC_V_TYPE
 #define FASTBC_V_TYPE int
 #endif // !FASTBC_V_TYPE
@@ -41,7 +43,7 @@ int main(int argc, char **argv)
 	 *	Program options 
 	 */
 	std::string edgeListPath, outBCPath, louvainSeed, loggerLevel;
-	int louvainExecutors;
+	int threads, louvainExecutors;
 	double louvainPrecision, kFrac;
 	bool exactBC;
 
@@ -69,6 +71,10 @@ int main(int argc, char **argv)
 		"", "exact",
 		"Force exact betweenness computation (very long time)",
 		&exactBC);
+	auto nt = op.add<popl::Value<int>, popl::Attribute::optional>(
+		"t", "threads",
+		"Maximum number of threads used in parallel computation");
+	nt->assign_to(&threads);
 	op.add<popl::Value<std::string>, popl::Attribute::optional>(
 		"o", "output",
 		"Output file path",
@@ -172,6 +178,13 @@ int main(int argc, char **argv)
 			SPDLOG_CRITICAL("Kfrac value must be in range 0-1.");
 			return -1;
 		}
+	}
+
+	if(nt->is_set())
+	{
+		SPDLOG_INFO("Maximum number of threads set to {}", threads);
+		
+		omp_set_num_threads(threads);
 	}
 
 	/*

@@ -47,7 +47,8 @@ The output is a list of values where the value in position i is the betweennes c
 |-s<br>--louvain-seeds||Louvain is an euristic algorithm. The output depends on the random order in which vertexes are examined. With this option you can pass a seed (int) to each louvain instance, to ensure the repeatability of results.|
 |-e<br>--louvain-instances|4|To get better results, for each iteration of the Louvain algorithm the communities are calculated multiple times in parallel. In each parallel instance a different order for vertices examination is considered. The result with better modularity is then kept for the next iteraton. This parameter specify how many parallel instances of the partition calculation must run at each iteration.|
 |-p<br>--louvain-precision|0.01|Terminate the Louvain algorithm when the difference in modularity between consecutive iterations is less than ```louvain-precision```.|
-|-t<br>--threads|OMP_NUM_THREADS|Number of available threads.|
+|  <br>--exact| |Force exact betweenness computation
+|-t<br>--threads|OMP_NUM_THREADS|Maximum number of threads used in parallel computation|
 |-k<br>--kfrac||Specify the number of superclasses that the second level of clustering must create. If for example, inside Louvain community 0 there are 100 classes and kfrac=0.5, the second level of clustering (kmeans) will generate 50 superclasses. |
 |-o<br>--output|bc.txt|The output file name.|
 |-d<br>--debug|info|Logger level (trace\|debug\|info\|warning\|error\|critical\|off)|

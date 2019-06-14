@@ -8,6 +8,7 @@ add_subdirectory( libfastbc )
 # Fast-BC compile options
 #####################################################################
 find_package(spdlog REQUIRED CONFIG)
+find_package(OpenMP REQUIRED)
 
 include(CheckIPOSupported)
 
@@ -30,4 +31,5 @@ endif()
 target_link_libraries(fbc 
 	PRIVATE
 	fastbc 
-	spdlog::spdlog )
+	spdlog::spdlog
+	OpenMP::OpenMP_CXX )
