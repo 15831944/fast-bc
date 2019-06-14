@@ -5,10 +5,6 @@
 #include <cmath>
 #include <vector>
 
-#ifndef FASTBC_BRANDES_VERTEXINFO_PENALTY
-#define FASTBC_BRANDES_VERTEXINFO_PENALTY 1000
-#endif
-
 namespace fastbc {
 	namespace brandes {
 
@@ -47,9 +43,6 @@ namespace fastbc {
 
 			template<typename N, typename E>
 			W squaredDistance(const VertexInfo<N, E>& other) const;
-
-			template<typename N, typename E>
-			W contributionDistance(const VertexInfo<N, E>& other) const;
 
 			template<typename N, typename E>
 			VertexInfo<V, W>& operator+=(const VertexInfo<N, E>& other);
@@ -268,32 +261,6 @@ W fastbc::brandes::VertexInfo<V, W>::squaredDistance(const VertexInfo<N, E>& oth
 	}
 
 	return sqDistance;
-}
-
-template<typename V, typename W>
-template<typename N, typename E>
-W fastbc::brandes::VertexInfo<V, W>::contributionDistance(const VertexInfo<N, E>& other) const
-{
-	W cDistance = 0;
-
-	#pragma omp simd reduction(+:cDistance)
-	for (int i = 0; i < _borderCount; ++i)
-	{
-		if (_borderSPCount[i] != 0 || other._borderSPCount[i] != 0)
-		{
-			if (_borderSPCount[i] > 0 && other._borderSPCount[i] > 0)
-			{
-				cDistance += std::pow(_borderSPLength[i] - (W)other._borderSPLength[i], 2);
-				cDistance += std::pow(_borderSPCount[i] - (V)other._borderSPCount[i], 2);
-			}
-			else
-			{
-				cDistance += (W)FASTBC_BRANDES_VERTEXINFO_PENALTY;
-			}
-		}
-	}
-
-	return cDistance;
 }
 
 template<typename V, typename W>
