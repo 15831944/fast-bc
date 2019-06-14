@@ -11,7 +11,7 @@
 #include <brandes/ClusteredBrandesBC.h>
 #include <brandes/KMeansPivotSelector.h>
 #include <kmeans/PlusPlusKMeans.h>
-#include <louvain/LouvainEvaluator.h>
+#include <louvain/LouvainGraphPartition.h>
 
 #include <chrono>
 #include <fstream>
@@ -49,8 +49,8 @@ int main(int argc, char **argv)
 		"");
 	ls->assign_to(&louvainSeed);
 	auto le = op.add<popl::Value<int>, popl::Attribute::optional>(
-		"e", "louvain-executors",
-		"Number of parallel louvain executor",
+		"e", "louvain-instances",
+		"Number of parallel louvain instances",
 		4);
 	le->assign_to(&louvainExecutors);
 	op.add<popl::Value<double>, popl::Attribute::optional>(
@@ -193,8 +193,8 @@ int main(int argc, char **argv)
 
 
 	/* Louvain community detector */
-	std::shared_ptr<fastbc::louvain::ILouvainEvaluator<FASTBC_V_TYPE, FASTBC_W_TYPE>> louvainEvaluator =
-		std::make_shared<fastbc::louvain::LouvainEvaluator<FASTBC_V_TYPE, FASTBC_W_TYPE>>(
+	std::shared_ptr<fastbc::IGraphPartition<FASTBC_V_TYPE, FASTBC_W_TYPE>> louvainEvaluator =
+		std::make_shared<fastbc::louvain::LouvainGraphPartition<FASTBC_V_TYPE, FASTBC_W_TYPE>>(
 			seed, louvainPrecision);
 
 	/* Brandes cluster evaluator */

@@ -15,6 +15,20 @@ namespace fastbc {
 		class KMeansPivotSelector : public IPivotSelector<V, W>
 		{
 		public:
+
+			/**
+			 * 	@brief Initialize a kmeans pivot selector
+			 * 
+			 * 	@details Pivot selection is first computed considering exact VertexInfo
+			 * 			 topological classes, then kmeans is applied to select a subset
+			 * 			 of those pivots based on VertexInfo::squaredDistance
+			 * 
+			 * 	@param exactPivotSelector Exact pivot selector used in first step
+			 * 	@param kmeans KMeans computer used in second step
+			 * 	@param kFrac Fraction of exact pivots to exctract using kmeans in second step
+			 * 	@param stopVariance Minimum allowed variance between pivots set to trigger a new kmeans iteration
+			 * 	@param maxIteration Maximumallowed kmeans iterations
+			 */
 			KMeansPivotSelector(
 				std::shared_ptr<IPivotSelector<V, W>> exactPivotSelector,
 				std::shared_ptr<kmeans::IKMeans<V, W>> kmeans,
@@ -70,19 +84,24 @@ fastbc::brandes::KMeansPivotSelector<V, W>::selectPivots(
 	const std::vector<V>& vertices,
 	const std::set<V>& borders)
 {
+	// Compute exact topological classes and their pivots
 	const auto[pivotIndexCluster, pivotClassCluster] = 
 		_exactPS->selectPivots(globalBC, verticesInfo, vertices, borders);
 
+	// Compute pivots subset cardinality
 	int k = std::max((int)(pivotIndexCluster.size() * _kFrac), 1);
 
 	SPDLOG_TRACE("Aggregating {} pivots in {} super-classes", 
 		pivotIndexCluster.size(), k);
 
+	// Compute pivots subset through kmeans algorithm
+	// BE AWARE: duplicated pivots can result from kmeans due to the algorithm euristic nature
 	std::pair<std::vector<V>, std::vector<V>> pivotWeight = 
 		_kmeans->computeCentroids(k, pivotIndexCluster, pivotClassCluster, verticesInfo, 
 			_stopVariance, _maxIteration);
 
 #ifndef FASTBC_BRANDES_KMENS_PIVOT_ALLOW_DUPLICATED
+	// Remove duplicated pivots from kmeans result
 	std::set<V> uniquePivots;
 	size_t duplicates = 0;
 	auto pIT = pivotWeight.first.begin();
@@ -109,7 +128,6 @@ fastbc::brandes::KMeansPivotSelector<V, W>::selectPivots(
 	}
 #endif
 	
-
 	return pivotWeight;
 }
 
